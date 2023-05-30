@@ -1,0 +1,20 @@
+POST http://localhost:5000/api/v1/apiKeys?__tenant=3a06f7c0-2c18-5ff9-17ca-26dd16193e66 HTTP/1.1
+x-nd-date: 2022-10-17T16:53:39.425Z
+x-nd-content-sha256: 6c892d65bb5837d16649ee18596f5b50d725ae47aa799f1fb0b39004c523510b
+Host: localhost:5000
+Authorization: NWS4-HMAC-SHA256 Credential%3Dd4ea2c905404dacecde8e518abeb1310%2CSignedHeaders%3Dhost%253Bx-nd-content-sha256%253Bx-nd-date%2CTimestamp%3D2022-10-17T16%253A53%253A39.425Z%2CSignature%3Dc50572dc031542501ca9e756bc773c0ec0b9a0ecb43e3cc49b82119ddef3589d
+Content-Type: application/json
+User-Agent: PostmanRuntime/7.28.4
+Accept: */*
+Postman-Token: f36a9851-012f-4724-b587-2d57158b6033
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Length: 155
+Cookie: .AspNetCore.Culture=c%3Den%7Cuic%3Den
+
+{
+    "name": "cashregister:test_1",
+    "description": null,
+    "userName": "cashregister",
+    "tenantId": "3a06f7c0-2c18-5ff9-17ca-26dd16193e66"
+}

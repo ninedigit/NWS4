@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\CreateNuGetPackage.props" />
+    
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>9.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>Tomáš Peťovský</Authors>
+        <Company>Nine Digit, s.r.o.</Company>
+        <Description>NWS4 authentication scheme</Description>
+        <Copyright>Copyright (C) 2023</Copyright>
+        <PackageProjectUrl>https://github.com/ninedigit/NWS4</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ninedigit/NWS4</RepositoryUrl>
+        <PackageTags>nws4, authentication, authorization</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <AssemblyVersion>3.0.0</AssemblyVersion>
+        <FileVersion>3.0.0</FileVersion>
+        <Version>3.0.0</Version>
+        <PackageVersion>3.0.0-alpha.4</PackageVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>$(MSBuildProjectName).Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="2.2.0" />
+        <PackageReference Include="Microsoft.Net.Http.Headers" Version="2.2.0" />
+    </ItemGroup>
+
+</Project>
