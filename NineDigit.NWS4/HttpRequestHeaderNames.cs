@@ -1,7 +1,6 @@
-﻿namespace NineDigit.NWS4
+﻿namespace NineDigit.NWS4;
+
+internal static class HttpRequestHeaderNames
 {
-    internal static class HttpRequestHeaderNames
-    {
-        public const string XForwardedHost = "X-Forwarded-Host";
-    }
+    public const string XForwardedHost = "X-Forwarded-Host";
 }

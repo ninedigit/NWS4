@@ -1,27 +1,26 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace System.Linq
+namespace System.Linq;
+
+internal static class DictionaryExtensions
 {
-    internal static class DictionaryExtensions
+    public static IReadOnlyDictionary<TKey, TValue> ToReadOnlyDictionary<TKey, TValue>(this IDictionary<TKey, TValue> self) where TKey: notnull
+        => new ReadOnlyDictionary<TKey, TValue>(self);
+
+    public static KeyValuePair<TKey, TValue>? FirstOrNull<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> self, Func<KeyValuePair<TKey, TValue>, bool> predicate)
     {
-        public static IReadOnlyDictionary<TKey, TValue> ToReadOnlyDictionary<TKey, TValue>(this IDictionary<TKey, TValue> self) where TKey: notnull
-            => new ReadOnlyDictionary<TKey, TValue>(self);
+        using var iterator = self.GetEnumerator();
 
-        public static KeyValuePair<TKey, TValue>? FirstOrNull<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> self, Func<KeyValuePair<TKey, TValue>, bool> predicate)
+        while (iterator.MoveNext())
         {
-            using var iterator = self.GetEnumerator();
+            var item = iterator.Current;
+            var matches = predicate(item);
 
-            while (iterator.MoveNext())
-            {
-                var item = iterator.Current;
-                var matches = predicate(item);
-
-                if (matches)
-                    return item;
-            }
-
-            return null;
+            if (matches)
+                return item;
         }
+
+        return null;
     }
 }

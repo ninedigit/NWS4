@@ -13,533 +13,532 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace NineDigit.NWS4
+namespace NineDigit.NWS4;
+
+public class AuthorizationHeaderChunkedSignerOptions : AuthorizationHeaderSignerOptions
 {
-    public class AuthorizationHeaderChunkedSignerOptions : AuthorizationHeaderSignerOptions
-    {
-    }
+}
     
-    public sealed class RawChunks : IReadOnlyList<ReadOnlyMemory<byte>>
+public sealed class RawChunks : IReadOnlyList<ReadOnlyMemory<byte>>
+{
+    private readonly IReadOnlyList<ReadOnlyMemory<byte>> chunks;
+
+    internal RawChunks(IReadOnlyList<ReadOnlyMemory<byte>> chunks)
     {
-        private readonly IReadOnlyList<ReadOnlyMemory<byte>> chunks;
-
-        internal RawChunks(IReadOnlyList<ReadOnlyMemory<byte>> chunks)
-        {
-            this.chunks = chunks ?? throw new ArgumentNullException(nameof(chunks));
-        }
-
-        public ReadOnlyMemory<byte> this[int index]
-            => this.chunks[index];
-
-        public byte[] ToArray()
-            => this.chunks.SelectMany(i => i.ToArray()).ToArray();
-
-        public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
-        {
-            foreach (var chunk in this.chunks)
-                await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
-        }
-
-        public int Count
-            => chunks.Count;
-
-        public IEnumerator<ReadOnlyMemory<byte>> GetEnumerator()
-            => this.chunks.GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator()
-            => this.GetEnumerator();
+        this.chunks = chunks ?? throw new ArgumentNullException(nameof(chunks));
     }
 
-    //public delegate Task BodyChunkAsyncWriterDelegate(byte[] chunk, CancellationToken cancellationToken = default);
+    public ReadOnlyMemory<byte> this[int index]
+        => this.chunks[index];
 
-    public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
+    public byte[] ToArray()
+        => this.chunks.SelectMany(i => i.ToArray()).ToArray();
+
+    public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        // SHA256 substitute marker used in place of x-amz-content-sha256 when employing 
-        // chunked uploads
-        internal protected const string StreamingBodySha256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD";
-        internal const string ContentEncodingNwsChunked = "nws-chunked";
-        const string ClRf = "\r\n";
-        const string ChunkStringToSignPrefix = "AWS4-HMAC-SHA256-PAYLOAD";
-        const string ChunkSignatureHeader = ";chunk-signature=";
-        const int SignatureLength = 64;
+        foreach (var chunk in this.chunks)
+            await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+    }
 
-        public static readonly long MinBlockSize = CalculateChunkTotalLength(1);
-        static readonly byte[] FinalChunk = Array.Empty<byte>();
+    public int Count
+        => chunks.Count;
 
-        public AuthorizationHeaderChunkedSigner()
-            : this(CreateDefaultOptions(), DefaultDateTimeProvider.Instance)
-        {
-        }
+    public IEnumerator<ReadOnlyMemory<byte>> GetEnumerator()
+        => this.chunks.GetEnumerator();
 
-        public AuthorizationHeaderChunkedSigner(IDateTimeProvider dateTimeProvider)
-            : this(CreateDefaultOptions(), dateTimeProvider, NullLogger<AuthorizationHeaderChunkedSigner>.Instance)
-        {
-        }
+    IEnumerator IEnumerable.GetEnumerator()
+        => this.GetEnumerator();
+}
+
+//public delegate Task BodyChunkAsyncWriterDelegate(byte[] chunk, CancellationToken cancellationToken = default);
+
+public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
+{
+    // SHA256 substitute marker used in place of x-amz-content-sha256 when employing 
+    // chunked uploads
+    internal protected const string StreamingBodySha256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD";
+    internal const string ContentEncodingNwsChunked = "nws-chunked";
+    const string ClRf = "\r\n";
+    const string ChunkStringToSignPrefix = "AWS4-HMAC-SHA256-PAYLOAD";
+    const string ChunkSignatureHeader = ";chunk-signature=";
+    const int SignatureLength = 64;
+
+    public static readonly long MinBlockSize = CalculateChunkTotalLength(1);
+    static readonly byte[] FinalChunk = Array.Empty<byte>();
+
+    public AuthorizationHeaderChunkedSigner()
+        : this(CreateDefaultOptions(), DefaultDateTimeProvider.Instance)
+    {
+    }
+
+    public AuthorizationHeaderChunkedSigner(IDateTimeProvider dateTimeProvider)
+        : this(CreateDefaultOptions(), dateTimeProvider, NullLogger<AuthorizationHeaderChunkedSigner>.Instance)
+    {
+    }
         
-        public AuthorizationHeaderChunkedSigner(
-            IDateTimeProvider dateTimeProvider,
-            ILogger<AuthorizationHeaderChunkedSigner> logger)
-            : this(CreateDefaultOptions(), dateTimeProvider, logger)
-        {
-        }
+    public AuthorizationHeaderChunkedSigner(
+        IDateTimeProvider dateTimeProvider,
+        ILogger<AuthorizationHeaderChunkedSigner> logger)
+        : this(CreateDefaultOptions(), dateTimeProvider, logger)
+    {
+    }
         
-        public AuthorizationHeaderChunkedSigner(
-            AuthorizationHeaderChunkedSignerOptions options)
-            : this(options, DefaultDateTimeProvider.Instance)
-        {
-        }
+    public AuthorizationHeaderChunkedSigner(
+        AuthorizationHeaderChunkedSignerOptions options)
+        : this(options, DefaultDateTimeProvider.Instance)
+    {
+    }
         
-        public AuthorizationHeaderChunkedSigner(
-            AuthorizationHeaderChunkedSignerOptions options,
-            ILogger<AuthorizationHeaderChunkedSigner> logger)
-            : this(options, DefaultDateTimeProvider.Instance, logger)
-        {
-        }
+    public AuthorizationHeaderChunkedSigner(
+        AuthorizationHeaderChunkedSignerOptions options,
+        ILogger<AuthorizationHeaderChunkedSigner> logger)
+        : this(options, DefaultDateTimeProvider.Instance, logger)
+    {
+    }
 
-        public AuthorizationHeaderChunkedSigner(
-            AuthorizationHeaderChunkedSignerOptions options,
-            IDateTimeProvider dateTimeProvider)
-            : this(options, dateTimeProvider, NullLogger<AuthorizationHeaderChunkedSigner>.Instance)
-        {
-        }
+    public AuthorizationHeaderChunkedSigner(
+        AuthorizationHeaderChunkedSignerOptions options,
+        IDateTimeProvider dateTimeProvider)
+        : this(options, dateTimeProvider, NullLogger<AuthorizationHeaderChunkedSigner>.Instance)
+    {
+    }
         
-        public AuthorizationHeaderChunkedSigner(
-            AuthorizationHeaderChunkedSignerOptions options,
-            IDateTimeProvider dateTimeProvider,
-            ILogger<AuthorizationHeaderChunkedSigner> logger)
-            : base(options, dateTimeProvider, logger)
-        {
-        }
+    public AuthorizationHeaderChunkedSigner(
+        AuthorizationHeaderChunkedSignerOptions options,
+        IDateTimeProvider dateTimeProvider,
+        ILogger<AuthorizationHeaderChunkedSigner> logger)
+        : base(options, dateTimeProvider, logger)
+    {
+    }
 
-        public async Task<RawChunks> SignRequestAsync(
-            IHttpRequest request,
-            string accessKey,
-            string privateKey,
-            long blockSize,
-            CancellationToken cancellationToken = default)
-        {
-            if (blockSize < MinBlockSize)
-                throw new ArgumentOutOfRangeException($"Min block size is {MinBlockSize}.", nameof(MinBlockSize));
+    public async Task<RawChunks> SignRequestAsync(
+        IHttpRequest request,
+        string accessKey,
+        string privateKey,
+        long blockSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (blockSize < MinBlockSize)
+            throw new ArgumentOutOfRangeException($"Min block size is {MinBlockSize}.", nameof(MinBlockSize));
 
-            var signResult = await this.SignSeedRequestAsync(request, accessKey, privateKey, blockSize, cancellationToken)
-                .ConfigureAwait(false);
+        var signResult = await this.SignSeedRequestAsync(request, accessKey, privateKey, blockSize, cancellationToken)
+            .ConfigureAwait(false);
 
-            // start consuming the data payload in blocks which we subsequently chunk; this prefixes
-            // the data with a 'chunk header' containing signature data from the prior chunk (or header
-            // signing, if the first chunk) plus length and other data. Each completed chunk is
-            // written to the request stream and to complete the upload, we send a final chunk with
-            // a zero-length data payload.
+        // start consuming the data payload in blocks which we subsequently chunk; this prefixes
+        // the data with a 'chunk header' containing signature data from the prior chunk (or header
+        // signing, if the first chunk) plus length and other data. Each completed chunk is
+        // written to the request stream and to complete the upload, we send a final chunk with
+        // a zero-length data payload.
 
-            // get the request stream and start writing the user data as chunks, as outlined
-            // above; as
-            var buffer = new byte[blockSize];
+        // get the request stream and start writing the user data as chunks, as outlined
+        // above; as
+        var buffer = new byte[blockSize];
             
-            var content = await request.ReadBodyAsync(cancellationToken)
-                .ConfigureAwait(false);
+        var content = await request.ReadBodyAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-            using var inputStream = new MemoryStream(content);
-            long bytesRead = 0;
-            var rawChunks = new List<ReadOnlyMemory<byte>>();
+        using var inputStream = new MemoryStream(content);
+        long bytesRead = 0;
+        var rawChunks = new List<ReadOnlyMemory<byte>>();
 
-            string lastComputedSignature = signResult.Signature;
+        string lastComputedSignature = signResult.Signature;
 
-            while ((bytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0)
+        while ((bytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            var chunk = this.ConstructSignedChunk(bytesRead, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out lastComputedSignature);
+            rawChunks.Add(chunk);
+        }
+
+        // last step is to send a signed zero-length chunk to complete the upload
+        var finalChunk = this.ConstructSignedChunk(0, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out _);
+        rawChunks.Add(finalChunk);
+
+        var result = new RawChunks(rawChunks);
+        return result;
+    }
+
+    /// <summary>
+    /// Calculates the expanded payload size of our data when it is chunked
+    /// </summary>
+    /// <param name="originalLength">
+    /// The true size of the data payload to be uploaded
+    /// </param>
+    /// <param name="maxChunkSize">
+    /// The size of each chunk we intend to send; each chunk will be
+    /// prefixed with signed header data, expanding the overall size
+    /// by a determinable amount
+    /// </param>
+    /// <returns>
+    /// The overall payload size to use as content-length on a chunked upload
+    /// </returns>
+    internal static long CalculateChunkedContentLength(long originalLength, long maxChunkSize, ILogger logger)
+    {
+        if (originalLength <= 0)
+            throw new ArgumentOutOfRangeException(nameof(originalLength));
+            
+        if (maxChunkSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxChunkSize));
+
+        var chunkLength = CalculateChunkLength(maxChunkSize);
+            
+        var maxSizeChunks = originalLength / chunkLength.Body;
+        var remainingBytes = originalLength % chunkLength.Body;
+
+        var chunkedContentLength = maxSizeChunks * chunkLength.Total
+                                   + (remainingBytes > 0 ? CalculateChunkTotalLength(remainingBytes) : 0)
+                                   + CalculateChunkTotalLength(0);
+
+        logger.LogDebug(
+            "Computed chunked content length for original length {originalLength} bytes, chunk size {chunkSize}KB is {chunkContentLength} bytes",
+            originalLength, chunkLength.Total / 1024, chunkedContentLength);
+
+        return chunkedContentLength;
+    }
+
+    internal static ChunkLength CalculateChunkLength(long chunkSize)
+    {
+        if (chunkSize < 0)
+            throw new ArgumentOutOfRangeException(nameof(chunkSize));
+
+        if (chunkSize == 0)
+            return ChunkLength.Zero;
+
+        //var hexChunkSizeLenth = Math.Log(chunkSize, 16);
+        //var minHexChunkSizeLenth = (long)Math.Floor(hexChunkSizeLenth);
+        //var maxHexChunkSizeLenth = (long)Math.Ceiling(hexChunkSizeLenth);
+            
+        var bodyLength = CalculateChunkBodyLength(chunkSize);
+
+        //if (Math.Log(chunkSize - bodyLength, 16) < minHexChunkSizeLenth)
+        //    bodyLength = CalculateChunkBodyLength(chunkSize) - (maxHexChunkSizeLenth - minHexChunkSizeLenth);
+        //else
+        //    bodyLength = CalculateChunkBodyLength(chunkSize);
+
+        return new ChunkLength(bodyLength);
+    }
+
+    /// <summary>
+    /// Returns a chunk for upload consisting of the signed 'header' or chunk
+    /// prefix plus the user data. The signature of the chunk incorporates the
+    /// signature of the previous chunk (or, if the first chunk, the signature
+    /// of the headers portion of the request).
+    /// </summary>
+    /// <param name="userDataLen">
+    /// The length of the user data contained in userData
+    /// </param>
+    /// <param name="userData">
+    /// Contains the user data to be sent in the upload chunk
+    /// </param>
+    /// <returns>
+    /// A new buffer of data for upload containing the chunk header plus user data
+    /// </returns>
+    private ReadOnlyMemory<byte> ConstructSignedChunk(
+        long userDataLen,
+        byte[] userData,
+        string dateTimeStamp,
+        string lastComputedSignature,
+        byte[] signingKey,
+        out string computedSignature)
+    {
+        // to keep our computation routine signatures simple, if the userData
+        // buffer contains less data than it could, shrink it. Note the special case
+        // to handle the requirement that we send an empty chunk to complete
+        // our chunked upload.
+        byte[] dataToChunk;
+        if (userDataLen == 0)
+            dataToChunk = FinalChunk;
+        else
+        {
+            if (userDataLen < userData.Length)
             {
-                var chunk = this.ConstructSignedChunk(bytesRead, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out lastComputedSignature);
-                rawChunks.Add(chunk);
+                // shrink the chunkdata to fit
+                dataToChunk = new byte[userDataLen];
+                Array.Copy(userData, 0, dataToChunk, 0, userDataLen);
             }
-
-            // last step is to send a signed zero-length chunk to complete the upload
-            var finalChunk = this.ConstructSignedChunk(0, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out _);
-            rawChunks.Add(finalChunk);
-
-            var result = new RawChunks(rawChunks);
-            return result;
-        }
-
-        /// <summary>
-        /// Calculates the expanded payload size of our data when it is chunked
-        /// </summary>
-        /// <param name="originalLength">
-        /// The true size of the data payload to be uploaded
-        /// </param>
-        /// <param name="maxChunkSize">
-        /// The size of each chunk we intend to send; each chunk will be
-        /// prefixed with signed header data, expanding the overall size
-        /// by a determinable amount
-        /// </param>
-        /// <returns>
-        /// The overall payload size to use as content-length on a chunked upload
-        /// </returns>
-        internal static long CalculateChunkedContentLength(long originalLength, long maxChunkSize, ILogger logger)
-        {
-            if (originalLength <= 0)
-                throw new ArgumentOutOfRangeException(nameof(originalLength));
-            
-            if (maxChunkSize <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maxChunkSize));
-
-            var chunkLength = CalculateChunkLength(maxChunkSize);
-            
-            var maxSizeChunks = originalLength / chunkLength.Body;
-            var remainingBytes = originalLength % chunkLength.Body;
-
-            var chunkedContentLength = maxSizeChunks * chunkLength.Total
-                                       + (remainingBytes > 0 ? CalculateChunkTotalLength(remainingBytes) : 0)
-                                       + CalculateChunkTotalLength(0);
-
-            logger.LogDebug(
-                "Computed chunked content length for original length {originalLength} bytes, chunk size {chunkSize}KB is {chunkContentLength} bytes",
-                originalLength, chunkLength.Total / 1024, chunkedContentLength);
-
-            return chunkedContentLength;
-        }
-
-        internal static ChunkLength CalculateChunkLength(long chunkSize)
-        {
-            if (chunkSize < 0)
-                throw new ArgumentOutOfRangeException(nameof(chunkSize));
-
-            if (chunkSize == 0)
-                return ChunkLength.Zero;
-
-            //var hexChunkSizeLenth = Math.Log(chunkSize, 16);
-            //var minHexChunkSizeLenth = (long)Math.Floor(hexChunkSizeLenth);
-            //var maxHexChunkSizeLenth = (long)Math.Ceiling(hexChunkSizeLenth);
-            
-            var bodyLength = CalculateChunkBodyLength(chunkSize);
-
-            //if (Math.Log(chunkSize - bodyLength, 16) < minHexChunkSizeLenth)
-            //    bodyLength = CalculateChunkBodyLength(chunkSize) - (maxHexChunkSizeLenth - minHexChunkSizeLenth);
-            //else
-            //    bodyLength = CalculateChunkBodyLength(chunkSize);
-
-            return new ChunkLength(bodyLength);
-        }
-
-        /// <summary>
-        /// Returns a chunk for upload consisting of the signed 'header' or chunk
-        /// prefix plus the user data. The signature of the chunk incorporates the
-        /// signature of the previous chunk (or, if the first chunk, the signature
-        /// of the headers portion of the request).
-        /// </summary>
-        /// <param name="userDataLen">
-        /// The length of the user data contained in userData
-        /// </param>
-        /// <param name="userData">
-        /// Contains the user data to be sent in the upload chunk
-        /// </param>
-        /// <returns>
-        /// A new buffer of data for upload containing the chunk header plus user data
-        /// </returns>
-        private ReadOnlyMemory<byte> ConstructSignedChunk(
-            long userDataLen,
-            byte[] userData,
-            string dateTimeStamp,
-            string lastComputedSignature,
-            byte[] signingKey,
-            out string computedSignature)
-        {
-            // to keep our computation routine signatures simple, if the userData
-            // buffer contains less data than it could, shrink it. Note the special case
-            // to handle the requirement that we send an empty chunk to complete
-            // our chunked upload.
-            byte[] dataToChunk;
-            if (userDataLen == 0)
-                dataToChunk = FinalChunk;
             else
-            {
-                if (userDataLen < userData.Length)
-                {
-                    // shrink the chunkdata to fit
-                    dataToChunk = new byte[userDataLen];
-                    Array.Copy(userData, 0, dataToChunk, 0, userDataLen);
-                }
-                else
-                    dataToChunk = userData;
-            }
-
-            var chunkHeader = new StringBuilder();
-
-            // start with size of user data
-            chunkHeader.Append(dataToChunk.Length.ToString("X"));
-
-            var chunkSignature = ComputeChunkSignature(
-                dateTimeStamp, lastComputedSignature, dataToChunk, signingKey, this.Logger);
-
-            // cache the signature to include with the next chunk's signature computation
-            computedSignature = chunkSignature;
-
-            // construct the actual chunk, comprised of the non-signed extensions, the
-            // 'headers' we just signed and their signature, plus a newline then copy
-            // that plus the user's data to a payload to be written to the request stream
-            chunkHeader.Append(ChunkSignatureHeader + chunkSignature);
-            chunkHeader.Append(ClRf);
-
-            this.Logger.LogDebug("Chunk header:\n{header}", chunkHeader);
-
-            try
-            {
-                var header = Encoding.UTF8.GetBytes(chunkHeader.ToString());
-                var trailer = Encoding.UTF8.GetBytes(ClRf);
-                var signedChunk = new byte[header.Length + dataToChunk.Length + trailer.Length];
-
-                Array.Copy(header, 0, signedChunk, 0, header.Length);
-                Array.Copy(dataToChunk, 0, signedChunk, header.Length, dataToChunk.Length);
-                Array.Copy(trailer, 0, signedChunk, header.Length + dataToChunk.Length, trailer.Length);
-
-                // this is the total data for the chunk that will be sent to the request stream
-                return signedChunk;
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Unable to sign the chunked data. " + e.Message, e);
-            }
+                dataToChunk = userData;
         }
 
-        static string ComputeChunkSignature(
-            string dateTimeStamp,
-            string lastComputedSignature,
-            byte[] data,
-            byte[] signingKey,
-            ILogger logger)
+        var chunkHeader = new StringBuilder();
+
+        // start with size of user data
+        chunkHeader.Append(dataToChunk.Length.ToString("X"));
+
+        var chunkSignature = ComputeChunkSignature(
+            dateTimeStamp, lastComputedSignature, dataToChunk, signingKey, this.Logger);
+
+        // cache the signature to include with the next chunk's signature computation
+        computedSignature = chunkSignature;
+
+        // construct the actual chunk, comprised of the non-signed extensions, the
+        // 'headers' we just signed and their signature, plus a newline then copy
+        // that plus the user's data to a payload to be written to the request stream
+        chunkHeader.Append(ChunkSignatureHeader + chunkSignature);
+        chunkHeader.Append(ClRf);
+
+        this.Logger.LogDebug("Chunk header:\n{header}", chunkHeader);
+
+        try
         {
-            // if this is the first chunk, we package it with the signing result
-            // of the request headers, otherwise we use the cached signature
-            // of the previous chunk
+            var header = Encoding.UTF8.GetBytes(chunkHeader.ToString());
+            var trailer = Encoding.UTF8.GetBytes(ClRf);
+            var signedChunk = new byte[header.Length + dataToChunk.Length + trailer.Length];
 
-            using var hashAlgorithm = CreateCanonicalRequestHashAlgorithm();
+            Array.Copy(header, 0, signedChunk, 0, header.Length);
+            Array.Copy(dataToChunk, 0, signedChunk, header.Length, dataToChunk.Length);
+            Array.Copy(trailer, 0, signedChunk, header.Length + dataToChunk.Length, trailer.Length);
 
-            // sig-extension
-            var chunkStringToSign =
-                    ChunkStringToSignPrefix + "\n" +
-                    dateTimeStamp + "\n" +
-                    lastComputedSignature + "\n" +
-                    hashAlgorithm.ComputeHash(data).ToHexString(Casing.Lower);
-
-            // compute the V4 signature for the chunk
-            var chunkSignature = ComputeKeyedHash(HmacSha256,
-                                                  signingKey,
-                                                  Encoding.UTF8.GetBytes(chunkStringToSign)).ToHexString(Casing.Lower);
-
-            logger.LogDebug("Chunk string to sign:\n{chunkStringToSign}\nChunk signature:\n{chunkSignature}",
-                chunkStringToSign, chunkSignature);
-
-            return chunkSignature;
+            // this is the total data for the chunk that will be sent to the request stream
+            return signedChunk;
         }
-
-        static long CalculateChunkTotalLength(long bodySize)
+        catch (Exception e)
         {
-            return bodySize.ToString("X").Length
-                    + ChunkSignatureHeader.Length
-                    + SignatureLength
-                    + ClRf.Length
-                    + bodySize
-                    + ClRf.Length;
+            throw new Exception("Unable to sign the chunked data. " + e.Message, e);
         }
+    }
 
-        static long CalculateChunkBodyLength(long maxChunkSize)
-        {
-            return maxChunkSize
-                    - maxChunkSize.ToString("X").Length
-                    - ChunkSignatureHeader.Length
-                    - SignatureLength
-                    - ClRf.Length
-                    //+ chunkSize
-                    - ClRf.Length;
-        }
+    static string ComputeChunkSignature(
+        string dateTimeStamp,
+        string lastComputedSignature,
+        byte[] data,
+        byte[] signingKey,
+        ILogger logger)
+    {
+        // if this is the first chunk, we package it with the signing result
+        // of the request headers, otherwise we use the cached signature
+        // of the previous chunk
 
-        protected override async Task<byte[]?> ValidateSignatureAsync(IHttpRequest request, AuthData authData, string privateKey, CancellationToken cancellationToken = default)
-        {
-            if (request is null)
-                throw new ArgumentNullException(nameof(request));
+        using var hashAlgorithm = CreateCanonicalRequestHashAlgorithm();
 
-            if (authData is null)
-                throw new ArgumentNullException(nameof(authData));
+        // sig-extension
+        var chunkStringToSign =
+            ChunkStringToSignPrefix + "\n" +
+            dateTimeStamp + "\n" +
+            lastComputedSignature + "\n" +
+            hashAlgorithm.ComputeHash(data).ToHexString(Casing.Lower);
 
-            if (!request.IsChunked())
-                return await base.ValidateSignatureAsync(request, authData, privateKey, cancellationToken)
-                    .ConfigureAwait(false);
+        // compute the V4 signature for the chunk
+        var chunkSignature = ComputeKeyedHash(HmacSha256,
+            signingKey,
+            Encoding.UTF8.GetBytes(chunkStringToSign)).ToHexString(Casing.Lower);
 
-            //
+        logger.LogDebug("Chunk string to sign:\n{chunkStringToSign}\nChunk signature:\n{chunkSignature}",
+            chunkStringToSign, chunkSignature);
 
-            byte[]? rawContentBytes = await request
-                .ReadBodyAsync(cancellationToken)
+        return chunkSignature;
+    }
+
+    static long CalculateChunkTotalLength(long bodySize)
+    {
+        return bodySize.ToString("X").Length
+               + ChunkSignatureHeader.Length
+               + SignatureLength
+               + ClRf.Length
+               + bodySize
+               + ClRf.Length;
+    }
+
+    static long CalculateChunkBodyLength(long maxChunkSize)
+    {
+        return maxChunkSize
+               - maxChunkSize.ToString("X").Length
+               - ChunkSignatureHeader.Length
+               - SignatureLength
+               - ClRf.Length
+               //+ chunkSize
+               - ClRf.Length;
+    }
+
+    protected override async Task<byte[]?> ValidateSignatureAsync(IHttpRequest request, AuthData authData, string privateKey, CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (authData is null)
+            throw new ArgumentNullException(nameof(authData));
+
+        if (!request.IsChunked())
+            return await base.ValidateSignatureAsync(request, authData, privateKey, cancellationToken)
                 .ConfigureAwait(false);
 
-            List<Chunk> chunks = new List<Chunk>();
-            using var memoryStream = new MemoryStream(rawContentBytes);
-            memoryStream.Position = 0;
+        //
 
-            StreamReader streamReader = new StreamReader(memoryStream);
-            Chunk? chunk = null;
+        byte[]? rawContentBytes = await request
+            .ReadBodyAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-            while ((chunk = ReadChunk(streamReader)) != null)
-                chunks.Add(chunk);
+        List<Chunk> chunks = new List<Chunk>();
+        using var memoryStream = new MemoryStream(rawContentBytes);
+        memoryStream.Position = 0;
 
-            var content = string.Join(string.Empty, chunks.Select(i => i.Data));
-            var contentBytes = Encoding.UTF8.GetBytes(content);
+        StreamReader streamReader = new StreamReader(memoryStream);
+        Chunk? chunk = null;
 
-            //
+        while ((chunk = ReadChunk(streamReader)) != null)
+            chunks.Add(chunk);
 
-            Uri? requestUri = request.RequestUri;
-            string httpMethod = request.Method;
-            string bodyHash = ComputeBodyHash(contentBytes);
-            DateTime dateTime = ParseUtcDateTime(authData.Timestamp);
-            string[] signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
-            IReadOnlyDictionary<string, string> headers = request.Headers.ToReadOnlyDictionary();
+        var content = string.Join(string.Empty, chunks.Select(i => i.Data));
+        var contentBytes = Encoding.UTF8.GetBytes(content);
 
-            IReadOnlyDictionary<string, string> signedHeaders =
-                GetHeaders(headers, signedHeaderNames)
+        //
+
+        Uri? requestUri = request.RequestUri;
+        string httpMethod = request.Method;
+        string bodyHash = ComputeBodyHash(contentBytes);
+        DateTime dateTime = ParseUtcDateTime(authData.Timestamp);
+        string[] signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
+        IReadOnlyDictionary<string, string> headers = request.Headers.ToReadOnlyDictionary();
+
+        IReadOnlyDictionary<string, string> signedHeaders =
+            GetHeaders(headers, signedHeaderNames)
                 .ToReadOnlyDictionary();
 
-            var computeSignatureResult = ComputeSignature(
-                requestUri,
-                httpMethod,
-                signedHeaders,
-                StreamingBodySha256,
-                authData.Credential,
-                privateKey,
-                dateTime,
-                this.Logger);
+        var computeSignatureResult = ComputeSignature(
+            requestUri,
+            httpMethod,
+            signedHeaders,
+            StreamingBodySha256,
+            authData.Credential,
+            privateKey,
+            dateTime,
+            this.Logger);
 
-            if (computeSignatureResult.Signature != authData.Signature)
-                throw new InvalidOperationException("Invalid signature.");
+        if (computeSignatureResult.Signature != authData.Signature)
+            throw new InvalidOperationException("Invalid signature.");
 
-            var lastSignature = computeSignatureResult.Signature;
+        var lastSignature = computeSignatureResult.Signature;
 
-            for (var i = 0; i < chunks.Count; i++)
-            {
-                chunk = chunks[i];
-                var chunkData = Encoding.UTF8.GetBytes(chunk.Data);
-                lastSignature = ComputeChunkSignature(computeSignatureResult.Timestamp, lastSignature, chunkData, computeSignatureResult.SigningKey, this.Logger);
-
-                if (lastSignature != chunk.Header.Signature)
-                    throw new InvalidOperationException($"Invalid chunk #{i} signature.");
-            }
-
-            return contentBytes;
-        }
-
-        private async Task<ComputeSignatureResult> SignSeedRequestAsync(IHttpRequest request, string accessKey, string privateKey, long blockSize, CancellationToken cancellationToken = default)
+        for (var i = 0; i < chunks.Count; i++)
         {
-            if (request is null)
-                throw new ArgumentNullException(nameof(request));
+            chunk = chunks[i];
+            var chunkData = Encoding.UTF8.GetBytes(chunk.Data);
+            lastSignature = ComputeChunkSignature(computeSignatureResult.Timestamp, lastSignature, chunkData, computeSignatureResult.SigningKey, this.Logger);
 
-            var body = await request.ReadBodyAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            var content = Encoding.UTF8.GetString(body);
-
-            request.Headers.Set(XNDContentSHA256, StreamingBodySha256);
-            request.Headers.Set(HeaderNames.ContentEncoding, ContentEncodingNwsChunked);
-            request.Headers.Set(HeaderNames.ContentType, MediaTypeNames.Text.Plain);
-            request.Headers.Set(XNDDecodedContentLength, content.Length.ToString(CultureInfo.InvariantCulture));
-
-            var totalLength = CalculateChunkedContentLength(content.Length, blockSize, this.Logger);
-
-            request.Headers.Set(HeaderNames.ContentLength, totalLength.ToString(CultureInfo.InvariantCulture));
-
-            var computeSignatureResult = this.ComputeSignature(
-                request.RequestUri,
-                request.Method,
-                request.Headers,
-                StreamingBodySha256,
-                accessKey,
-                privateKey);
-
-            var authData = new AuthData(computeSignatureResult);
-            this.AuthDataSerializer.Write(request, authData);
-
-            return computeSignatureResult;
+            if (lastSignature != chunk.Header.Signature)
+                throw new InvalidOperationException($"Invalid chunk #{i} signature.");
         }
 
-        private static Chunk? ReadChunk(StreamReader reader)
-        {
-            if (reader.EndOfStream)
-                return default;
-
-            var data = reader.ReadLine();
-            var pattern = $"^([0-9a-fA-F]+){ChunkSignatureHeader}([0-9a-fA-F]{{{SignatureLength}}})$";
-            var match = Regex.Match(data, pattern);
-
-            if (!match.Success)
-                throw new FormatException("Invalid chunk format.");
-
-            var lengthHexString = match.Groups[1].Value;
-            var signature = match.Groups[2].Value;
-
-            var length = long.Parse(lengthHexString, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            var chunkHeader = new ChunkHeader(length, signature);
-
-            var chunkContent = reader.ReadLine();
-            if (chunkContent.Length != chunkHeader.Length)
-                throw new FormatException("Invalid chunk content length.");
-
-            var chunk = new Chunk(chunkHeader, chunkContent);
-
-            return chunk;
-        }
-
-        sealed class Chunk
-        {
-            public Chunk(ChunkHeader header, string data)
-            {
-                Header = header;
-                Data = data;
-            }
-
-            public ChunkHeader Header { get; }
-            public string Data { get; }
-        }
-
-        sealed class ChunkHeader
-        {
-            public ChunkHeader(long length, string signature)
-            {
-                Length = length;
-                Signature = signature;
-            }
-
-            public long Length { get; }
-            public string Signature { get; }
-        }
-
-        internal struct ChunkLength : IEquatable<ChunkLength>
-        {
-            public static readonly ChunkLength Zero = new ChunkLength();
-
-            public ChunkLength(long body)
-            {
-                if (body < 0)
-                    throw new ArgumentOutOfRangeException(nameof(body));
-
-                this.Body = body;
-                this.Total = GetTotalLength(body);
-            }
-
-            public long Body { get; }
-            public long Total { get; }
-
-            public override int GetHashCode()
-                => HashCode.Combine(this.Body, this.Total);
-
-            public override bool Equals(object obj)
-                => obj is ChunkLength len && this.Equals(len);
-
-            public bool Equals(ChunkLength other)
-                => this.Body == other.Body && this.Total == other.Total;
-
-            private static long GetTotalLength(long bodyLength)
-                => bodyLength.ToString("X").Length
-                    + ChunkSignatureHeader.Length
-                    + SignatureLength
-                    + ClRf.Length
-                    + bodyLength
-                    + ClRf.Length;
-        }
-        
-        private static AuthorizationHeaderChunkedSignerOptions CreateDefaultOptions()
-            => new AuthorizationHeaderChunkedSignerOptions();
+        return contentBytes;
     }
+
+    private async Task<ComputeSignatureResult> SignSeedRequestAsync(IHttpRequest request, string accessKey, string privateKey, long blockSize, CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        var body = await request.ReadBodyAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var content = Encoding.UTF8.GetString(body);
+
+        request.Headers.Set(XNDContentSHA256, StreamingBodySha256);
+        request.Headers.Set(HeaderNames.ContentEncoding, ContentEncodingNwsChunked);
+        request.Headers.Set(HeaderNames.ContentType, MediaTypeNames.Text.Plain);
+        request.Headers.Set(XNDDecodedContentLength, content.Length.ToString(CultureInfo.InvariantCulture));
+
+        var totalLength = CalculateChunkedContentLength(content.Length, blockSize, this.Logger);
+
+        request.Headers.Set(HeaderNames.ContentLength, totalLength.ToString(CultureInfo.InvariantCulture));
+
+        var computeSignatureResult = this.ComputeSignature(
+            request.RequestUri,
+            request.Method,
+            request.Headers,
+            StreamingBodySha256,
+            accessKey,
+            privateKey);
+
+        var authData = new AuthData(computeSignatureResult);
+        this.AuthDataSerializer.Write(request, authData);
+
+        return computeSignatureResult;
+    }
+
+    private static Chunk? ReadChunk(StreamReader reader)
+    {
+        if (reader.EndOfStream)
+            return default;
+
+        var data = reader.ReadLine();
+        var pattern = $"^([0-9a-fA-F]+){ChunkSignatureHeader}([0-9a-fA-F]{{{SignatureLength}}})$";
+        var match = Regex.Match(data, pattern);
+
+        if (!match.Success)
+            throw new FormatException("Invalid chunk format.");
+
+        var lengthHexString = match.Groups[1].Value;
+        var signature = match.Groups[2].Value;
+
+        var length = long.Parse(lengthHexString, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        var chunkHeader = new ChunkHeader(length, signature);
+
+        var chunkContent = reader.ReadLine();
+        if (chunkContent.Length != chunkHeader.Length)
+            throw new FormatException("Invalid chunk content length.");
+
+        var chunk = new Chunk(chunkHeader, chunkContent);
+
+        return chunk;
+    }
+
+    sealed class Chunk
+    {
+        public Chunk(ChunkHeader header, string data)
+        {
+            Header = header;
+            Data = data;
+        }
+
+        public ChunkHeader Header { get; }
+        public string Data { get; }
+    }
+
+    sealed class ChunkHeader
+    {
+        public ChunkHeader(long length, string signature)
+        {
+            Length = length;
+            Signature = signature;
+        }
+
+        public long Length { get; }
+        public string Signature { get; }
+    }
+
+    internal struct ChunkLength : IEquatable<ChunkLength>
+    {
+        public static readonly ChunkLength Zero = new ChunkLength();
+
+        public ChunkLength(long body)
+        {
+            if (body < 0)
+                throw new ArgumentOutOfRangeException(nameof(body));
+
+            this.Body = body;
+            this.Total = GetTotalLength(body);
+        }
+
+        public long Body { get; }
+        public long Total { get; }
+
+        public override int GetHashCode()
+            => HashCode.Combine(this.Body, this.Total);
+
+        public override bool Equals(object obj)
+            => obj is ChunkLength len && this.Equals(len);
+
+        public bool Equals(ChunkLength other)
+            => this.Body == other.Body && this.Total == other.Total;
+
+        private static long GetTotalLength(long bodyLength)
+            => bodyLength.ToString("X").Length
+               + ChunkSignatureHeader.Length
+               + SignatureLength
+               + ClRf.Length
+               + bodyLength
+               + ClRf.Length;
+    }
+        
+    private static AuthorizationHeaderChunkedSignerOptions CreateDefaultOptions()
+        => new AuthorizationHeaderChunkedSignerOptions();
 }

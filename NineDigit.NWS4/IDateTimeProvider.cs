@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace NineDigit.NWS4
+namespace NineDigit.NWS4;
+
+public interface IDateTimeProvider
 {
-    public interface IDateTimeProvider
-    {
-        DateTime UtcNow { get; }
-    }
+    DateTime UtcNow { get; }
 }

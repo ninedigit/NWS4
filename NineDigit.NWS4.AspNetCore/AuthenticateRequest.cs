@@ -3,75 +3,74 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NineDigit.NWS4.AspNetCore
+namespace NineDigit.NWS4.AspNetCore;
+
+public sealed class AuthenticateRequest : IDisposable
 {
-    public sealed class AuthenticateRequest : IDisposable
+    private byte[]? body;
+    private bool disposed;
+    private bool validated;
+    private readonly AsyncLock bodySyncRoot;
+
+    internal AuthenticateRequest(
+        Signer signer,
+        IHttpRequest request,
+        AuthData authenticationHeaderContext,
+        NWS4AuthenticationSchemeOptions options)
     {
-        private byte[]? body;
-        private bool disposed;
-        private bool validated;
-        private readonly AsyncLock bodySyncRoot;
+        Signer = signer ?? throw new ArgumentNullException(nameof(signer));
+        Request = request ?? throw new ArgumentNullException(nameof(request));
+        AuthenticationHeaderContext = authenticationHeaderContext ?? throw new ArgumentNullException(nameof(authenticationHeaderContext));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
 
-        internal AuthenticateRequest(
-            Signer signer,
-            IHttpRequest request,
-            AuthData authenticationHeaderContext,
-            NWS4AuthenticationSchemeOptions options)
+        bodySyncRoot = new AsyncLock();
+    }
+
+    private Signer Signer { get; }
+    public IHttpRequest Request { get; }
+    public AuthData AuthenticationHeaderContext { get; }
+    public NWS4AuthenticationSchemeOptions Options { get; }
+
+    public async Task ValidateSignatureAsync(string privateKey, CancellationToken cancellationToken = default)
+    {
+        using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
         {
-            Signer = signer ?? throw new ArgumentNullException(nameof(signer));
-            Request = request ?? throw new ArgumentNullException(nameof(request));
-            AuthenticationHeaderContext = authenticationHeaderContext ?? throw new ArgumentNullException(nameof(authenticationHeaderContext));
-            Options = options ?? throw new ArgumentNullException(nameof(options));
+            var content = await this.Signer
+                .ValidateSignatureAsync(this.Request, privateKey, this.Options.RequestTimeWindow, cancellationToken)
+                .ConfigureAwait(false);
 
-            bodySyncRoot = new AsyncLock();
+            this.body = content;
+            this.validated = true;
+        }
+    }
+
+    public async Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default)
+    {
+        using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (!this.validated)
+                throw new InvalidOperationException("Content signature was not validated.");
+
+            var result = this.body?.ToArray();
+            return result;
         }
 
-        private Signer Signer { get; }
-        public IHttpRequest Request { get; }
-        public AuthData AuthenticationHeaderContext { get; }
-        public NWS4AuthenticationSchemeOptions Options { get; }
+    }
 
-        public async Task ValidateSignatureAsync(string privateKey, CancellationToken cancellationToken = default)
+    private void Dispose(bool disposing)
+    {
+        if (!disposed)
         {
-            using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
-            {
-                var content = await this.Signer
-                    .ValidateSignatureAsync(this.Request, privateKey, this.Options.RequestTimeWindow, cancellationToken)
-                    .ConfigureAwait(false);
+            if (disposing)
+                this.bodySyncRoot.Dispose();
 
-                this.body = content;
-                this.validated = true;
-            }
+            disposed = true;
         }
+    }
 
-        public async Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default)
-        {
-            using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
-            {
-                if (!this.validated)
-                    throw new InvalidOperationException("Content signature was not validated.");
-
-                var result = this.body?.ToArray();
-                return result;
-            }
-
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                    this.bodySyncRoot.Dispose();
-
-                disposed = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

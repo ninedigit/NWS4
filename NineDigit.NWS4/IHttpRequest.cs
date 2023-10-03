@@ -2,15 +2,14 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NineDigit.NWS4
+namespace NineDigit.NWS4;
+
+public interface IHttpRequest
 {
-    public interface IHttpRequest
-    {
-        Uri? RequestUri { get; }
-        string Method { get; }
+    Uri? RequestUri { get; }
+    string Method { get; }
 
-        IHttpRequestHeaders Headers { get; }
+    IHttpRequestHeaders Headers { get; }
 
-        Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default);
-    }
+    Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default);
 }

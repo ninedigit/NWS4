@@ -1,7 +1,6 @@
-﻿namespace NineDigit.NWS4.AspNetCore
+﻿namespace NineDigit.NWS4.AspNetCore;
+
+public static class NWS4AuthenticationDefaults
 {
-    public static class NWS4AuthenticationDefaults
-    {
-        public const string AuthenticationScheme = AuthorizationHeaderSigner.SchemeName;
-    }
+    public const string AuthenticationScheme = AuthorizationHeaderSigner.SchemeName;
 }
