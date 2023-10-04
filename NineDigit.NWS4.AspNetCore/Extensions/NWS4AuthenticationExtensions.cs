@@ -6,27 +6,40 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class NWS4AuthenticationExtensions
 {
-    public static AuthenticationBuilder AddNWS4Authentication<THandler>(
+    public static AuthenticationBuilder AddNWS4UsingAuthorizationHeader<THandler>(
+        this AuthenticationBuilder builder
+    ) where THandler : NWS4AuthenticationHeaderHandler
+        => AddNWS4UsingAuthorizationHeader<THandler>(builder, _ => { });
+
+    public static AuthenticationBuilder AddNWS4UsingAuthorizationHeader<THandler>(
+        this AuthenticationBuilder builder,
+        Action<NWS4AuthenticationHeaderSchemeOptions> configureOptions
+    ) where THandler : NWS4AuthenticationHeaderHandler
+        => AddNWS4<THandler, NWS4AuthenticationHeaderSchemeOptions>(builder, configureOptions);
+    
+    //
+    
+    public static AuthenticationBuilder AddNWS4UsingAuthorizationHeaderChunked<THandler>(
         this AuthenticationBuilder builder
     ) where THandler : NWS4AuthenticationHeaderChunkedHandler
-        => AddNWS4Authentication<THandler>(builder, _ => { });
+        => AddNWS4UsingAuthorizationHeaderChunked<THandler>(builder, _ => { });
 
-    public static AuthenticationBuilder AddNWS4Authentication<THandler>(
+    public static AuthenticationBuilder AddNWS4UsingAuthorizationHeaderChunked<THandler>(
         this AuthenticationBuilder builder,
         Action<NWS4AuthenticationHeaderChunkedSchemeOptions> configureOptions
     ) where THandler : NWS4AuthenticationHeaderChunkedHandler
-        => AddNWS4Authentication<THandler, NWS4AuthenticationHeaderChunkedSchemeOptions>(builder, configureOptions);
-        
+        => AddNWS4<THandler, NWS4AuthenticationHeaderChunkedSchemeOptions>(builder, configureOptions);
+    
     //
-        
-    public static AuthenticationBuilder AddNWS4Authentication<THandler, TOptions>(
+    
+    public static AuthenticationBuilder AddNWS4<THandler, TOptions>(
         this AuthenticationBuilder builder
     )
         where THandler : AuthenticationHandler<TOptions>
         where TOptions : NWS4AuthenticationSchemeOptions, new()
-        => AddNWS4Authentication<THandler, TOptions>(builder, _ => { });
+        => AddNWS4<THandler, TOptions>(builder, _ => { });
 
-    public static AuthenticationBuilder AddNWS4Authentication<THandler, TOptions>(
+    public static AuthenticationBuilder AddNWS4<THandler, TOptions>(
         this AuthenticationBuilder builder,
         Action<TOptions> configureOptions
     )
@@ -38,6 +51,40 @@ public static class NWS4AuthenticationExtensions
         return builder.AddScheme<TOptions, THandler>(
             NWS4AuthenticationDefaults.AuthenticationScheme, configureOptions);
     }
+    
+    //////////
+    
+    [Obsolete("Use AddNWS4UsingAuthorizationHeaderChunked instead.")]
+    public static AuthenticationBuilder AddNWS4Authentication<THandler>(
+        this AuthenticationBuilder builder
+    ) where THandler : NWS4AuthenticationHeaderChunkedHandler
+        => AddNWS4Authentication<THandler>(builder, _ => { });
+
+    [Obsolete("Use AddNWS4UsingAuthorizationHeaderChunked instead.")]
+    public static AuthenticationBuilder AddNWS4Authentication<THandler>(
+        this AuthenticationBuilder builder,
+        Action<NWS4AuthenticationHeaderChunkedSchemeOptions> configureOptions
+    ) where THandler : NWS4AuthenticationHeaderChunkedHandler
+        => AddNWS4Authentication<THandler, NWS4AuthenticationHeaderChunkedSchemeOptions>(builder, configureOptions);
+        
+    //
+    
+    [Obsolete("Use AddNWS4 instead.")]
+    public static AuthenticationBuilder AddNWS4Authentication<THandler, TOptions>(
+        this AuthenticationBuilder builder
+    )
+        where THandler : AuthenticationHandler<TOptions>
+        where TOptions : NWS4AuthenticationSchemeOptions, new()
+        => AddNWS4Authentication<THandler, TOptions>(builder, _ => { });
+
+    [Obsolete("Use AddNWS4 instead.")]
+    public static AuthenticationBuilder AddNWS4Authentication<THandler, TOptions>(
+        this AuthenticationBuilder builder,
+        Action<TOptions> configureOptions
+    )
+        where THandler : AuthenticationHandler<TOptions>
+        where TOptions : NWS4AuthenticationSchemeOptions, new()
+        => AddNWS4<THandler, TOptions>(builder, configureOptions);
 
     private static void PostConfigure(NWS4AuthenticationSchemeOptions options)
     {
