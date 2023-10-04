@@ -5,7 +5,7 @@ using System.Net.Mime;
 
 namespace NineDigit.NWS4;
 
-internal static class IHttpRequestExtensions
+internal static class HttpRequestExtensions
 {
     public static bool IsChunked(this IHttpRequest request)
     {

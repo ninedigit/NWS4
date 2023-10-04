@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NineDigit.NWS4;
 
-internal static class IReadOnlyHttpRequestHeadersExtensions
+internal static class ReadOnlyHttpRequestHeadersExtensions
 {
     public static void RequireValue(
         this IReadOnlyHttpRequestHeaders headers,
