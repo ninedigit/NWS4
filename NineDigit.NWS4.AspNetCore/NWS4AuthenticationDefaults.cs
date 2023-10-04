@@ -2,5 +2,5 @@
 
 public static class NWS4AuthenticationDefaults
 {
-    public const string AuthenticationScheme = AuthorizationHeaderSigner.SchemeName;
+    public const string AuthenticationScheme = Signer.SchemeName;
 }

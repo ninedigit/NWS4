@@ -5,7 +5,7 @@ namespace NineDigit.NWS4.AspNetCore.Examples.API.Controllers;
 
 public class User
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 [Authorize]

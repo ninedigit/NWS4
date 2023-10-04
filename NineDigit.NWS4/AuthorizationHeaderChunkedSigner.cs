@@ -1,6 +1,5 @@
 ﻿using Microsoft.Net.Http.Headers;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -15,53 +14,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace NineDigit.NWS4;
 
-public class AuthorizationHeaderChunkedSignerOptions : AuthorizationHeaderSignerOptions
-{
-}
-    
-public sealed class RawChunks : IReadOnlyList<ReadOnlyMemory<byte>>
-{
-    private readonly IReadOnlyList<ReadOnlyMemory<byte>> chunks;
-
-    internal RawChunks(IReadOnlyList<ReadOnlyMemory<byte>> chunks)
-    {
-        this.chunks = chunks ?? throw new ArgumentNullException(nameof(chunks));
-    }
-
-    public ReadOnlyMemory<byte> this[int index]
-        => this.chunks[index];
-
-    public byte[] ToArray()
-        => this.chunks.SelectMany(i => i.ToArray()).ToArray();
-
-    public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
-    {
-        foreach (var chunk in this.chunks)
-            await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
-    }
-
-    public int Count
-        => chunks.Count;
-
-    public IEnumerator<ReadOnlyMemory<byte>> GetEnumerator()
-        => this.chunks.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator()
-        => this.GetEnumerator();
-}
-
 //public delegate Task BodyChunkAsyncWriterDelegate(byte[] chunk, CancellationToken cancellationToken = default);
 
 public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
 {
     // SHA256 substitute marker used in place of x-amz-content-sha256 when employing 
     // chunked uploads
-    internal protected const string StreamingBodySha256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD";
+    protected internal const string StreamingBodySha256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD";
     internal const string ContentEncodingNwsChunked = "nws-chunked";
-    const string ClRf = "\r\n";
-    const string ChunkStringToSignPrefix = "AWS4-HMAC-SHA256-PAYLOAD";
-    const string ChunkSignatureHeader = ";chunk-signature=";
-    const int SignatureLength = 64;
+    private const string ClRf = "\r\n";
+    private const string ChunkStringToSignPrefix = "AWS4-HMAC-SHA256-PAYLOAD";
+    private const string ChunkSignatureHeader = ";chunk-signature=";
+    private const int SignatureLength = 64;
 
     public static readonly long MinBlockSize = CalculateChunkTotalLength(1);
     static readonly byte[] FinalChunk = Array.Empty<byte>();
@@ -133,17 +97,18 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         // get the request stream and start writing the user data as chunks, as outlined
         // above; as
         var buffer = new byte[blockSize];
-            
-        var content = await request.ReadBodyAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var content = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
+
+        if (content is null)
+            return RawChunks.Empty;
 
         using var inputStream = new MemoryStream(content);
         long bytesRead = 0;
+        
         var rawChunks = new List<ReadOnlyMemory<byte>>();
+        var lastComputedSignature = signResult.Signature;
 
-        string lastComputedSignature = signResult.Signature;
-
-        while ((bytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0)
+        while ((bytesRead = await inputStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
         {
             var chunk = this.ConstructSignedChunk(bytesRead, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out lastComputedSignature);
             rawChunks.Add(chunk);
@@ -168,6 +133,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
     /// prefixed with signed header data, expanding the overall size
     /// by a determinable amount
     /// </param>
+    /// <param name="logger"></param>
     /// <returns>
     /// The overall payload size to use as content-length on a chunked upload
     /// </returns>
@@ -189,7 +155,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
                                    + CalculateChunkTotalLength(0);
 
         logger.LogDebug(
-            "Computed chunked content length for original length {originalLength} bytes, chunk size {chunkSize}KB is {chunkContentLength} bytes",
+            "Computed chunked content length for original length {OriginalLength} bytes, chunk size {ChunkSize}KB is {ChunkContentLength} bytes",
             originalLength, chunkLength.Total / 1024, chunkedContentLength);
 
         return chunkedContentLength;
@@ -229,6 +195,10 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
     /// <param name="userData">
     /// Contains the user data to be sent in the upload chunk
     /// </param>
+    /// <param name="dateTimeStamp"></param>
+    /// <param name="lastComputedSignature"></param>
+    /// <param name="signingKey"></param>
+    /// <param name="computedSignature"></param>
     /// <returns>
     /// A new buffer of data for upload containing the chunk header plus user data
     /// </returns>
@@ -276,7 +246,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         chunkHeader.Append(ChunkSignatureHeader + chunkSignature);
         chunkHeader.Append(ClRf);
 
-        this.Logger.LogDebug("Chunk header:\n{header}", chunkHeader);
+        this.Logger.LogDebug("Chunk header:\n{Header}", chunkHeader);
 
         try
         {
@@ -322,7 +292,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             signingKey,
             Encoding.UTF8.GetBytes(chunkStringToSign)).ToHexString(Casing.Lower);
 
-        logger.LogDebug("Chunk string to sign:\n{chunkStringToSign}\nChunk signature:\n{chunkSignature}",
+        logger.LogDebug("Chunk string to sign:\n{ChunkStringToSign}\nChunk signature:\n{ChunkSignature}",
             chunkStringToSign, chunkSignature);
 
         return chunkSignature;
@@ -363,35 +333,35 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
 
         //
 
-        byte[]? rawContentBytes = await request
-            .ReadBodyAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        List<Chunk> chunks = new List<Chunk>();
-        using var memoryStream = new MemoryStream(rawContentBytes);
-        memoryStream.Position = 0;
-
-        StreamReader streamReader = new StreamReader(memoryStream);
         Chunk? chunk = null;
+        byte[]? contentBytes = null;
+        var chunks = new List<Chunk>();
 
-        while ((chunk = ReadChunk(streamReader)) != null)
-            chunks.Add(chunk);
+        var rawContentBytes = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
+        if (rawContentBytes != null)
+        {
+            using var memoryStream = new MemoryStream(rawContentBytes);
+            memoryStream.Position = 0;
 
-        var content = string.Join(string.Empty, chunks.Select(i => i.Data));
-        var contentBytes = Encoding.UTF8.GetBytes(content);
+            var streamReader = new StreamReader(memoryStream);
+            
+
+            while ((chunk = ReadChunk(streamReader)) != null)
+                chunks.Add(chunk);
+
+            var content = string.Join(string.Empty, chunks.Select(i => i.Data));
+            contentBytes = Encoding.UTF8.GetBytes(content);
+        }
 
         //
 
-        Uri? requestUri = request.RequestUri;
-        string httpMethod = request.Method;
-        string bodyHash = ComputeBodyHash(contentBytes);
-        DateTime dateTime = ParseUtcDateTime(authData.Timestamp);
-        string[] signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
-        IReadOnlyDictionary<string, string> headers = request.Headers.ToReadOnlyDictionary();
-
-        IReadOnlyDictionary<string, string> signedHeaders =
-            GetHeaders(headers, signedHeaderNames)
-                .ToReadOnlyDictionary();
+        var requestUri = request.RequestUri;
+        var httpMethod = request.Method;
+        //var bodyHash = ComputeBodyHash(contentBytes);
+        var dateTime = ParseUtcDateTime(authData.Timestamp);
+        var signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
+        var headers = request.Headers.ToReadOnlyDictionary();
+        var signedHeaders = GetHeaders(headers, signedHeaderNames).ToReadOnlyDictionary();
 
         var computeSignatureResult = ComputeSignature(
             requestUri,
@@ -426,10 +396,8 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
-        var body = await request.ReadBodyAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var content = Encoding.UTF8.GetString(body);
+        var body = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
+        var content = body != null ? Encoding.UTF8.GetString(body) : string.Empty; 
 
         request.Headers.Set(XNDContentSHA256, StreamingBodySha256);
         request.Headers.Set(HeaderNames.ContentEncoding, ContentEncodingNwsChunked);
@@ -460,6 +428,9 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             return default;
 
         var data = reader.ReadLine();
+        if (data is null)
+            return null;
+        
         var pattern = $"^([0-9a-fA-F]+){ChunkSignatureHeader}([0-9a-fA-F]{{{SignatureLength}}})$";
         var match = Regex.Match(data, pattern);
 
@@ -473,6 +444,9 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         var chunkHeader = new ChunkHeader(length, signature);
 
         var chunkContent = reader.ReadLine();
+        if (chunkContent is null)
+            return null;
+        
         if (chunkContent.Length != chunkHeader.Length)
             throw new FormatException("Invalid chunk content length.");
 
@@ -524,7 +498,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         public override int GetHashCode()
             => HashCode.Combine(this.Body, this.Total);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
             => obj is ChunkLength len && this.Equals(len);
 
         public bool Equals(ChunkLength other)

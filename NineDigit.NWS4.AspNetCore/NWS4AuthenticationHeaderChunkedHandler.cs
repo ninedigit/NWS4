@@ -39,7 +39,7 @@ public abstract class NWS4AuthenticationHeaderChunkedHandler :
 
         if (string.IsNullOrEmpty(authHeader) || !AuthorizationHeaderSigner.CanValidateSignature(authHeader))
         {
-            this.Logger.LogDebug("Authorization header is not present or is not in NWS4 format.");
+            this.Logger.LogDebug("Authorization header is not present or is not in NWS4 format");
             return null;
         }
 
@@ -49,7 +49,7 @@ public abstract class NWS4AuthenticationHeaderChunkedHandler :
         }
         catch (FormatException ex)
         {
-            this.Logger.LogWarning(ex, "Invalid NWS4 authentication header.");
+            this.Logger.LogWarning(ex, "Invalid NWS4 authentication header");
             throw new FormatException("Invalid NWS4 authentication header.");
         }
     }

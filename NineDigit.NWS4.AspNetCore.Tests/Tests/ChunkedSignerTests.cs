@@ -64,7 +64,7 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             
             var value = Assert.Single(values);
             
-            Assert.Equal("NWS4-HMAC-SHA256 Credential%3dd51fbd43e205b16a806ca2399c7023b8%2cSignedHeaders%3dcontent-encoding%253bcontent-length%253bcontent-type%253bhost%253bx-nd-content-sha256%253bx-nd-date%253bx-nws-decoded-content-length%253b__tenant%2cTimestamp%3d2022-02-07T10%253a47%253a53.026Z%2cSignature%3da9a63825ec5c79e8350e4db3aad1faf16cf5a95b6b0887776216c0787fe74547", value);
+            Assert.Equal("NWS4-HMAC-SHA256 Credential%3Dd51fbd43e205b16a806ca2399c7023b8%2CSignedHeaders%3Dcontent-encoding%253Bcontent-length%253Bcontent-type%253Bhost%253Bx-nd-content-sha256%253Bx-nd-date%253Bx-nws-decoded-content-length%253B__tenant%2CTimestamp%3D2022-02-07T10%253A47%253A53.026Z%2CSignature%3Da9a63825ec5c79e8350e4db3aad1faf16cf5a95b6b0887776216c0787fe74547", value);
             Assert.Equal(body, receivedBody);
         }
     }

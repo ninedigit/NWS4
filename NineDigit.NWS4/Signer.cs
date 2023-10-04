@@ -203,8 +203,8 @@ public abstract class Signer
     /// the signature. For NWS1, all header names must be included in the process 
     /// in sorted canonicalized order.
     /// </summary>
-    /// <param name="headers">
-    /// The set of header names and values that will be sent with the request
+    /// <param name="headerNames">
+    /// The set of header names that will be sent with the request
     /// </param>
     /// <returns>
     /// The set of header names canonicalized to a flattened, ;-delimited string
@@ -401,17 +401,15 @@ public abstract class Signer
 
     public static string ComputeBodyHash(byte[]? content)
     {
-        if (content?.Length > 0)
-        {
-            // precompute hash of the body content
-            using var hashAlgorithm = CreateCanonicalRequestHashAlgorithm();
-            var contentHash = hashAlgorithm.ComputeHash(content);
-            var bodyHash = contentHash.ToHexString(Casing.Lower);
+        if (content is null || content.Length == 0)
+            return EmptyBodySha256;
+        
+        // precompute hash of the body content
+        using var hashAlgorithm = CreateCanonicalRequestHashAlgorithm();
+        var contentHash = hashAlgorithm.ComputeHash(content);
+        var bodyHash = contentHash.ToHexString(Casing.Lower);
 
-            return bodyHash;
-        }
-
-        return EmptyBodySha256;
+        return bodyHash;
     }
 
     protected static IDictionary<string, string> GetHeaders(

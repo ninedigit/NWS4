@@ -11,30 +11,6 @@ using Microsoft.Net.Http.Headers;
 
 namespace NineDigit.NWS4;
 
-public class AuthorizationHeaderSignerOptions : SignerOptions
-{
-    public static readonly string DefaultForwardedHostHeaderName = HttpRequestHeaderNames.XForwardedHost;
-        
-    private string forwardedHostHeaderName = DefaultForwardedHostHeaderName;
-        
-    /// <summary>
-    /// Determines whether X-Forwarded-Host headers will be used during signature validation.
-    /// </summary>
-    public bool AllowForwardedHostHeader { get; set; } = false;
-
-    public string ForwardedHostHeaderName
-    {
-        get => this.forwardedHostHeaderName;
-        set
-        {
-            if (string.IsNullOrEmpty(value))
-                throw new ArgumentException("Value can not be null or empty.", nameof(value));
-
-            this.forwardedHostHeaderName = value;
-        }
-    }
-}
-    
 // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-auth-using-authorization-header.html
 public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSerializer, AuthorizationHeaderSignerOptions>
 {
@@ -61,7 +37,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         
     public AuthorizationHeaderSigner(
         AuthorizationHeaderSignerOptions options,
-        ILogger<AuthorizationHeaderChunkedSigner> logger)
+        ILogger<AuthorizationHeaderSigner> logger)
         : this(options, DefaultDateTimeProvider.Instance, logger)
     {
     }
@@ -90,10 +66,10 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string privateKey,
         CancellationToken cancellationToken = default)
     {
-        ComputeSignatureResult computeSignatureResult = await this
+        var computeSignatureResult = await this
             .ComputeSignatureAsync(request, accessKey, privateKey, cancellationToken);
 
-        AuthData authData = new AuthData(computeSignatureResult);
+        var authData = new AuthData(computeSignatureResult);
         this.AuthDataSerializer.Write(request, authData);
     }
         
@@ -106,10 +82,10 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
-        byte[]? body = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
-        string bodyHash = ComputeBodyHash(body);
+        var body = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
+        var bodyHash = ComputeBodyHash(body);
             
-        ComputeSignatureResult computeSignatureResult = this
+        var computeSignatureResult = this
             .ComputeSignature(request.RequestUri, request.Method, request.Headers, bodyHash, accessKey, privateKey);
 
         return computeSignatureResult;
@@ -244,7 +220,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         }
 
         logger.LogDebug(
-            "Canonical Request:\n\"{canonicalRequest}\"\nString to sign:\n{stringToSign}\nSignature:\n{signature}",
+            "Canonical Request:\n\"{CanonicalRequest}\"\nString to sign:\n{StringToSign}\nSignature:\n{Signature}",
             canonicalRequest, stringToSign, signatureString);
             
         var result = new ComputeSignatureResult(
@@ -282,10 +258,10 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         if (authData is null)
             throw new ArgumentNullException(nameof(authData));
 
-        Uri? requestUri = request.RequestUri;
-        string httpMethod = request.Method;
-        string[] signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
-        Dictionary<string, string> headers = request.Headers.ToDictionary();
+        var requestUri = request.RequestUri;
+        var httpMethod = request.Method;
+        var signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
+        var headers = request.Headers.ToDictionary();
             
         if (this.Options.AllowForwardedHostHeader &&
             headers.ContainsKey(HeaderNames.Host) &&
@@ -294,15 +270,12 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
             headers[HeaderNames.Host] = forwardedHost;
         }
             
-        IReadOnlyDictionary<string, string> signedHeaders = GetHeaders(headers, signedHeaderNames)
-            .ToReadOnlyDictionary();
+        var signedHeaders = GetHeaders(headers, signedHeaderNames).ToReadOnlyDictionary();
+        var content = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
+        var bodyHash = ComputeBodyHash(content);
+        var dateTime = ParseUtcDateTime(authData.Timestamp);
 
-        byte[]? content = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
-
-        string bodyHash = ComputeBodyHash(content);
-        DateTime dateTime = ParseUtcDateTime(authData.Timestamp);
-
-        ComputeSignatureResult result = ComputeSignature(
+        var result = ComputeSignature(
             requestUri, httpMethod, signedHeaders,
             bodyHash, authData.Credential, privateKey, dateTime, this.Logger);
 
@@ -315,6 +288,5 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
     internal static DateTime ParseUtcDateTime(string dateTimeStamp)
         => ParseDateTime(dateTimeStamp).ToUniversalTime();
         
-    private static AuthorizationHeaderSignerOptions CreateDefaultOptions()
-        => new AuthorizationHeaderSignerOptions();
+    private static AuthorizationHeaderSignerOptions CreateDefaultOptions() => new();
 }

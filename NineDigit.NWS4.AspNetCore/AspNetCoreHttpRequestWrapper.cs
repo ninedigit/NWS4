@@ -13,7 +13,7 @@ internal sealed class AspNetCoreHttpRequestWrapper : IHttpRequest
     {
         this.request = request ?? throw new ArgumentNullException(nameof(request));
 
-        this.RequestUri = new Uri(UriHelper.GetEncodedUrl(request));
+        this.RequestUri = new Uri(request.GetEncodedUrl());
         this.Method = request.Method.ToUpperInvariant();
         this.Headers = new HeaderDictionaryWrapper(request.Headers);
     }

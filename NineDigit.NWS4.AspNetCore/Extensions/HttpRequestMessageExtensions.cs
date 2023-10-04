@@ -3,38 +3,37 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace NineDigit.NWS4.AspNetCore
+namespace NineDigit.NWS4.AspNetCore;
+
+internal static class HttpRequestMessageExtensions
 {
-    internal static class HttpRequestMessageExtensions
+    public static async Task<byte[]?> TryReadContentAsByteArrayAsync(this HttpRequestMessage self)
     {
-        public static async Task<byte[]?> TryReadContentAsByteArrayAsync(this HttpRequestMessage self)
+        if (self == null)
+            throw new ArgumentNullException(nameof(self));
+
+        byte[]? bodyContent = null;
+
+        var requestContent = self.Content;
+        if (requestContent != null)
         {
-            if (self == null)
-                throw new ArgumentNullException(nameof(self));
+            using var memoryStream = new MemoryStream();
+            var stream = await requestContent.ReadAsStreamAsync().ConfigureAwait(false);
 
-            byte[]? bodyContent = null;
+            stream.CopyTo(memoryStream);
 
-            var requestContent = self.Content;
-            if (requestContent != null)
-            {
-                using var memoryStream = new MemoryStream();
-                var stream = await requestContent.ReadAsStreamAsync().ConfigureAwait(false);
+            memoryStream.Position = 0;
+            bodyContent = memoryStream.ToArray();
 
-                stream.CopyTo(memoryStream);
+            var readOnlyStream = new MemoryStream(bodyContent, writable: false);
+            var streamContent = new StreamContent(readOnlyStream);
 
-                memoryStream.Position = 0;
-                bodyContent = memoryStream.ToArray();
+            foreach (var item in requestContent.Headers)
+                streamContent.Headers.TryAddWithoutValidation(item.Key, item.Value);
 
-                var readOnlyStream = new MemoryStream(bodyContent, writable: false);
-                var streamContent = new StreamContent(readOnlyStream);
-
-                foreach (var item in requestContent.Headers)
-                    streamContent.Headers.TryAddWithoutValidation(item.Key, item.Value);
-
-                self.Content = streamContent;
-            }
-
-            return bodyContent;
+            self.Content = streamContent;
         }
+
+        return bodyContent;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,13 +53,16 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
                     .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, maxBodySize.Value, cancellationToken)
                     .ConfigureAwait(false);
 
-                requestMessage.Content = new PushStreamContent(async (stream, httpContent, transportContext) =>
+                if (chunks.Any())
                 {
-                    foreach (var chunk in chunks)
-                        await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+                    requestMessage.Content = new PushStreamContent(async (stream, httpContent, transportContext) =>
+                    {
+                        foreach (var chunk in chunks)
+                            await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
 
-                    stream.Close();
-                });
+                        stream.Close();
+                    });
+                }
             }
             else
             {

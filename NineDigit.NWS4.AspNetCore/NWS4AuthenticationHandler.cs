@@ -52,7 +52,7 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
         
     protected sealed override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        this.Logger.LogDebug("Attempting to authenticate using NWS4.");
+        this.Logger.LogDebug("Attempting to authenticate using NWS4");
 
         IHttpRequest httpRequest = new AspNetCoreHttpRequestWrapper(this.Context.Request);
         AuthData? authData;
@@ -82,7 +82,7 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
 
             sw.Stop();
 
-            this.Logger.LogInformation("Authentication using NWS4 took {elapsedMilliseconds}ms.", sw.ElapsedMilliseconds);
+            this.Logger.LogInformation("Authentication using NWS4 took {ElapsedMilliseconds}ms.", sw.ElapsedMilliseconds);
 
             if (result.Succeeded)
             {
@@ -98,12 +98,12 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
         }
         catch (SignatureExpiredException ex)
         {
-            this.Logger.LogWarning(ex, "NWS4 signature expired.");
+            this.Logger.LogWarning(ex, "NWS4 signature expired");
             return AuthenticateResult.NoResult();
         }
         catch (Exception ex)
         {
-            this.Logger.LogError(ex, "Authentication failed for NWS4.");
+            this.Logger.LogError(ex, "Authentication failed for NWS4");
             result = AuthenticateResult.Fail(ex);
         }
 
