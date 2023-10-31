@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.Net.Http.Headers;
 
 namespace NineDigit.NWS4.AspNetCore.Tests
 {

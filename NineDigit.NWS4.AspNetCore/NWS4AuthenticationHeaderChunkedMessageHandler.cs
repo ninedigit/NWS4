@@ -26,12 +26,8 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
             throw new ArgumentOutOfRangeException(nameof(maxRequestBodySize));
 
         this.MaxRequestBodySize = maxRequestBodySize;
-
-        this.credentialsProvider =
-            credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
-
+        this.credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
         this.Signer = signer ?? throw new ArgumentNullException(nameof(signer));
-            
         this.InnerHandler = new HttpClientHandler();
     }
 
