@@ -12,13 +12,20 @@ public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
     public NWS4AuthenticationHeaderMessageHandler(
         AuthorizationHeaderSigner signer,
         Func<HttpRequestMessage, Credentials?> credentialsProvider)
+        : this(signer, credentialsProvider, new HttpClientHandler())
+    {
+    }
+    
+    public NWS4AuthenticationHeaderMessageHandler(
+        AuthorizationHeaderSigner signer,
+        Func<HttpRequestMessage, Credentials?> credentialsProvider,
+        HttpMessageHandler innerHandler)
+        : base(innerHandler)
     {
         this.credentialsProvider =
             credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
 
         this.Signer = signer ?? throw new ArgumentNullException(nameof(signer));
-            
-        this.InnerHandler = new HttpClientHandler();
     }
 
     protected AuthorizationHeaderSigner Signer { get; }
