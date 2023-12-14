@@ -6,37 +6,37 @@ namespace NineDigit.NWS4.AspNetCore;
 
 internal sealed class AsyncLock : IDisposable
 {
-    private readonly SemaphoreSlim locker = new SemaphoreSlim(1, 1);
-    private bool disposed;
+    private readonly SemaphoreSlim _locker = new SemaphoreSlim(1, 1);
+    private bool _disposed;
 
     internal bool Locked
-        => this.locker.CurrentCount == 0;
+        => _locker.CurrentCount == 0;
 
     public async Task<IDisposable> LockAsync(CancellationToken cancellationToken = default)
     {
-        await locker.WaitAsync(cancellationToken).ConfigureAwait(false);
-        var result = new ActionDisposable(() => locker.Release());
+        await _locker.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var result = new ActionDisposable(() => _locker.Release());
         return result;
     }
 
     sealed class ActionDisposable : IDisposable
     {
-        private bool disposed;
-        private readonly Action action;
+        private bool _disposed;
+        private readonly Action _action;
 
         public ActionDisposable(Action action)
         {
-            this.action = action ?? throw new ArgumentNullException(nameof(action));
+            _action = action ?? throw new ArgumentNullException(nameof(action));
         }
 
         private void Dispose(bool disposing)
         {
-            if (!disposed)
+            if (!_disposed)
             {
                 if (disposing)
-                    this.action();
+                    _action();
 
-                disposed = true;
+                _disposed = true;
             }
         }
 
@@ -49,12 +49,12 @@ internal sealed class AsyncLock : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (!_disposed)
         {
             if (disposing)
-                this.locker.Dispose();
+                _locker.Dispose();
 
-            disposed = true;
+            _disposed = true;
         }
     }
 

@@ -7,10 +7,10 @@ namespace NineDigit.NWS4.AspNetCore;
 
 public sealed class AuthenticateRequest : IDisposable
 {
-    private byte[]? body;
-    private bool disposed;
-    private bool validated;
-    private readonly AsyncLock bodySyncRoot;
+    private byte[]? _body;
+    private bool _disposed;
+    private bool _validated;
+    private readonly AsyncLock _bodySyncRoot;
 
     internal AuthenticateRequest(
         Signer signer,
@@ -23,7 +23,7 @@ public sealed class AuthenticateRequest : IDisposable
         AuthenticationHeaderContext = authenticationHeaderContext ?? throw new ArgumentNullException(nameof(authenticationHeaderContext));
         Options = options ?? throw new ArgumentNullException(nameof(options));
 
-        bodySyncRoot = new AsyncLock();
+        _bodySyncRoot = new AsyncLock();
     }
 
     private Signer Signer { get; }
@@ -33,25 +33,25 @@ public sealed class AuthenticateRequest : IDisposable
 
     public async Task ValidateSignatureAsync(string privateKey, CancellationToken cancellationToken = default)
     {
-        using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
+        using (await _bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
         {
-            var content = await this.Signer
-                .ValidateSignatureAsync(this.Request, privateKey, this.Options.RequestTimeWindow, cancellationToken)
+            var content = await Signer
+                .ValidateSignatureAsync(Request, privateKey, Options.RequestTimeWindow, cancellationToken)
                 .ConfigureAwait(false);
 
-            this.body = content;
-            this.validated = true;
+            _body = content;
+            _validated = true;
         }
     }
 
     public async Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default)
     {
-        using (await this.bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
+        using (await _bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
         {
-            if (!this.validated)
+            if (!_validated)
                 throw new InvalidOperationException("Content signature was not validated.");
 
-            var result = this.body?.ToArray();
+            var result = _body?.ToArray();
             return result;
         }
 
@@ -59,12 +59,12 @@ public sealed class AuthenticateRequest : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (!_disposed)
         {
             if (disposing)
-                this.bodySyncRoot.Dispose();
+                _bodySyncRoot.Dispose();
 
-            disposed = true;
+            _disposed = true;
         }
     }
 

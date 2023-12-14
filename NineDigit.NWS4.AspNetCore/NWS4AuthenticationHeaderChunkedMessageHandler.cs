@@ -8,7 +8,7 @@ namespace NineDigit.NWS4.AspNetCore;
 
 public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
 {
-    private readonly Func<HttpRequestMessage, Credentials?> credentialsProvider;
+    private readonly Func<HttpRequestMessage, Credentials?> _credentialsProvider;
         
     public NWS4AuthenticationHeaderChunkedMessageHandler(
         AuthorizationHeaderChunkedSigner signer,
@@ -25,10 +25,10 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
         if (maxRequestBodySize.HasValue && maxRequestBodySize.Value < AuthorizationHeaderChunkedSigner.MinBlockSize)
             throw new ArgumentOutOfRangeException(nameof(maxRequestBodySize));
 
-        this.MaxRequestBodySize = maxRequestBodySize;
-        this.credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
-        this.Signer = signer ?? throw new ArgumentNullException(nameof(signer));
-        this.InnerHandler = new HttpClientHandler();
+        MaxRequestBodySize = maxRequestBodySize;
+        _credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
+        Signer = signer ?? throw new ArgumentNullException(nameof(signer));
+        InnerHandler = new HttpClientHandler();
     }
 
     public long? MaxRequestBodySize { get; set; }
@@ -36,16 +36,16 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage, CancellationToken cancellationToken)
     {
-        var credentials = this.credentialsProvider(requestMessage);
+        var credentials = _credentialsProvider(requestMessage);
         if (credentials != null)
         {
-            var maxBodySize = this.MaxRequestBodySize;
+            var maxBodySize = MaxRequestBodySize;
             var request = new HttpRequestMessageWrapper(requestMessage);
 
             var contentLength = requestMessage.Content?.Headers.ContentLength;
             if (maxBodySize.HasValue && contentLength.HasValue && contentLength.Value > maxBodySize)
             {
-                var chunks = await this.Signer
+                var chunks = await Signer
                     .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, maxBodySize.Value, cancellationToken)
                     .ConfigureAwait(false);
 
@@ -54,7 +54,14 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
                     requestMessage.Content = new PushStreamContent(async (stream, httpContent, transportContext) =>
                     {
                         foreach (var chunk in chunks)
+                        {
+#if NETSTANDARD2_0
+                            var buffer = chunk.ToArray();
+                            await stream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+#else
                             await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+#endif
+                        }
 
                         stream.Close();
                     });
@@ -62,7 +69,7 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
             }
             else
             {
-                await this.Signer
+                await Signer
                     .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, cancellationToken)
                     .ConfigureAwait(false);
             }

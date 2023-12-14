@@ -12,8 +12,8 @@ public sealed class Credentials
         if (string.IsNullOrEmpty(privateKey))
             throw new ArgumentException("Value can not be null or empty.", nameof(privateKey));
 
-        this.PublicKey = publicKey;
-        this.PrivateKey = privateKey;
+        PublicKey = publicKey;
+        PrivateKey = privateKey;
     }
 
     public string PublicKey { get; }

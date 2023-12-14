@@ -14,7 +14,7 @@ internal sealed class HttpRequestHeadersWrapper : IHttpRequestHeaders
 
     public HttpRequestHeadersWrapper()
     {
-        this._headers = new HeaderDictionary();
+        _headers = new HeaderDictionary();
     }
 
     public HttpRequestHeadersWrapper(IHttpRequestHeaders headers)
@@ -22,7 +22,7 @@ internal sealed class HttpRequestHeadersWrapper : IHttpRequestHeaders
         if (headers is null)
             throw new ArgumentNullException(nameof(headers));
 
-        this._headers = new HeaderDictionary(headers.ToDictionary(i => i.Key, i => new StringValues(i.Value.ToArray())));
+        _headers = new HeaderDictionary(headers.ToDictionary(i => i.Key, i => new StringValues(i.Value.ToArray())));
     }
 
     public HttpRequestHeadersWrapper(IReadOnlyHttpRequestHeaders headers)
@@ -30,26 +30,26 @@ internal sealed class HttpRequestHeadersWrapper : IHttpRequestHeaders
         if (headers is null)
             throw new ArgumentNullException(nameof(headers));
 
-        this._headers = new HeaderDictionary(headers.ToDictionary(i => i.Key, i => new StringValues(i.Value.ToArray())));
+        _headers = new HeaderDictionary(headers.ToDictionary(i => i.Key, i => new StringValues(i.Value.ToArray())));
     }
 
     public void Add(string name, string? value)
     {
-        lock (this._headers)
-            this._headers.Add(name, value);
+        lock (_headers)
+            _headers.Add(name, value);
     }
 
     public bool Remove(string name)
     {
-        lock (this._headers)
-            return this._headers.Remove(name);
+        lock (_headers)
+            return _headers.Remove(name);
     }
 
     public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
     {
-        lock (this._headers)
+        lock (_headers)
         {
-            if (this._headers.TryGetValue(name, out StringValues stringValues))
+            if (_headers.TryGetValue(name, out StringValues stringValues))
             {
                 values = stringValues.ToArray();
                 return true;
@@ -64,11 +64,11 @@ internal sealed class HttpRequestHeadersWrapper : IHttpRequestHeaders
 
     public IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumerator()
     {
-        lock (this._headers)
+        lock (_headers)
         {
-            foreach (var key in this._headers.Keys)
+            foreach (var key in _headers.Keys)
             {
-                var values = this._headers.GetCommaSeparatedValues(key);
+                var values = _headers.GetCommaSeparatedValues(key);
                 var result = new KeyValuePair<string, IEnumerable<string>>(key, values);
 
                 yield return result;
@@ -77,5 +77,5 @@ internal sealed class HttpRequestHeadersWrapper : IHttpRequestHeaders
     }
 
     IEnumerator IEnumerable.GetEnumerator()
-        => this.GetEnumerator();
+        => GetEnumerator();
 }

@@ -105,10 +105,10 @@ public abstract class Signer
         IAuthDataSerializer authDataSerializer,
         ILogger<Signer> logger)
     {
-        this.Options = options ?? throw new ArgumentNullException(nameof(options));
-        this.DateTimeProvider = dateTimeProvider ?? throw new ArgumentNullException(nameof(dateTimeProvider));
-        this.AuthDataSerializer = authDataSerializer ?? throw new ArgumentNullException(nameof(authDataSerializer));
-        this.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
+        DateTimeProvider = dateTimeProvider ?? throw new ArgumentNullException(nameof(dateTimeProvider));
+        AuthDataSerializer = authDataSerializer ?? throw new ArgumentNullException(nameof(authDataSerializer));
+        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     internal SignerOptions Options { get; }
@@ -129,7 +129,7 @@ public abstract class Signer
         if (requestTimeWindow.Milliseconds < -1)
             throw new ArgumentOutOfRangeException(nameof(requestTimeWindow));
 
-        var authData = this.AuthDataSerializer.Read(request);
+        var authData = AuthDataSerializer.Read(request);
 
         if (authData is null)
             throw new ArgumentException("No authorization header.", nameof(request));
@@ -140,7 +140,7 @@ public abstract class Signer
         var content = await ValidateSignatureAsync(request, authData, privateKey, cancellationToken)
             .ConfigureAwait(false);
 
-        var nowTimeStamp = this.DateTimeProvider.UtcNow;
+        var nowTimeStamp = DateTimeProvider.UtcNow;
         var timeStamp = authData.GetUtcDateTime();
         var isOutOfTimeWindow = requestTimeWindow != Timeout.InfiniteTimeSpan &&
                                 (timeStamp < nowTimeStamp.Add(-requestTimeWindow) ||
@@ -248,7 +248,7 @@ public abstract class Signer
         if (string.IsNullOrEmpty(queryParameters))
             return canonicalizedQueryParameters;
             
-        var paramCollection = queryParameters
+        var paramCollection = queryParameters!
             .Split('&')
             .Select(p => p.Split('='))
             .Select(parts => new KeyValuePair<string, string>(parts[0], parts.Length > 1 ? parts[1] : ""))

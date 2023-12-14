@@ -69,7 +69,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
             .ComputeSignatureAsync(request, accessKey, privateKey, cancellationToken);
 
         var authData = new AuthData(computeSignatureResult);
-        this.AuthDataSerializer.Write(request, authData);
+        AuthDataSerializer.Write(request, authData);
     }
         
     internal async Task<ComputeSignatureResult> ComputeSignatureAsync(
@@ -143,7 +143,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string accessKey,
         string privateKey)
     {
-        var dateTime = this.DateTimeProvider.UtcNow.ToUniversalTime();
+        var dateTime = DateTimeProvider.UtcNow.ToUniversalTime();
 
         // update the headers with required 'x-nd-content-sha256', 'x-nd-date' and 'host' values
 
@@ -166,7 +166,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         DateTime dateTime,
         ILogger logger)
     {
-        string? queryParameters = requestUri?.Query?.TrimStart('?');
+        string? queryParameters = requestUri?.Query.TrimStart('?');
 
         // TODO: Validate required Headers like Host
 
@@ -262,9 +262,9 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         var signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
         var headers = request.Headers.ToDictionary();
             
-        if (this.Options.AllowForwardedHostHeader &&
+        if (Options.AllowForwardedHostHeader &&
             headers.ContainsKey(HeaderNames.Host) &&
-            headers.TryGetValue(this.Options.ForwardedHostHeaderName, out var forwardedHost))
+            headers.TryGetValue(Options.ForwardedHostHeaderName, out var forwardedHost))
         {
             headers[HeaderNames.Host] = forwardedHost;
         }
@@ -276,7 +276,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
 
         var result = ComputeSignature(
             requestUri, httpMethod, signedHeaders,
-            bodyHash, authData.Credential, privateKey, dateTime, this.Logger);
+            bodyHash, authData.Credential, privateKey, dateTime, Logger);
 
         if (result.Signature != authData.Signature)
             throw new InvalidOperationException("Invalid signature.");

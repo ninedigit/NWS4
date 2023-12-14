@@ -15,8 +15,8 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
     where TSigner : Signer
     where TOptions : NWS4AuthenticationSchemeOptions, new()
 {
-    private TSigner? signer;
-    private readonly object signerSyncRoot = new();
+    private TSigner? _signer;
+    private readonly object _signerSyncRoot = new();
         
     public NWS4AuthenticationHandler(
         IOptionsMonitor<TOptions> options,
@@ -25,11 +25,11 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
         UrlEncoder encoder
     ) : base(options, loggerFactory, encoder, clock)
     {
-        this.LoggerFactory = loggerFactory;
+        LoggerFactory = loggerFactory;
     }
 
     protected TSigner Signer
-        => this.GetOrCreateSigner();
+        => GetOrCreateSigner();
         
     protected ILoggerFactory LoggerFactory { get; }
 
@@ -37,29 +37,29 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
     protected abstract AuthData? ReadAuthData(IHttpRequest request);
 
     private TSigner GetOrCreateSigner()
-        => this.GetOrCreateSigner(this.Options);
+        => GetOrCreateSigner(Options);
         
     private TSigner GetOrCreateSigner(TOptions options)
     {
-        lock (this.signerSyncRoot)
+        lock (_signerSyncRoot)
         {
-            if (this.signer is null)
-                this.signer = this.CreateSigner(options);
+            if (_signer is null)
+                _signer = CreateSigner(options);
 
-            return this.signer;
+            return _signer;
         }
     }
         
     protected sealed override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        this.Logger.LogDebug("Attempting to authenticate using NWS4");
+        Logger.LogDebug("Attempting to authenticate using NWS4");
 
-        IHttpRequest httpRequest = new AspNetCoreHttpRequestWrapper(this.Context.Request);
+        IHttpRequest httpRequest = new AspNetCoreHttpRequestWrapper(Context.Request);
         AuthData? authData;
 
         try
         {
-            authData = this.ReadAuthData(httpRequest);
+            authData = ReadAuthData(httpRequest);
         }
         catch (Exception ex)
         {
@@ -69,7 +69,7 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
         if (authData is null)
             return AuthenticateResult.NoResult();
 
-        using var authenticateRequest = new AuthenticateRequest(this.Signer, httpRequest, authData, this.Options);
+        using var authenticateRequest = new AuthenticateRequest(Signer, httpRequest, authData, Options);
         AuthenticateResult result;
 
         try
@@ -77,50 +77,46 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
             var sw = Stopwatch.StartNew();
 
             result = await this
-                .AuthenticateAsync(authenticateRequest, this.Context.RequestAborted)
+                .AuthenticateAsync(authenticateRequest, Context.RequestAborted)
                 .ConfigureAwait(false);
 
             sw.Stop();
 
-            this.Logger.LogInformation("Authentication using NWS4 took {ElapsedMilliseconds}ms.", sw.ElapsedMilliseconds);
+            Logger.LogInformation("Authentication using NWS4 took {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
 
             if (result.Succeeded)
             {
                 var body = await authenticateRequest
-                    .ReadBodyAsync(this.Context.RequestAborted)
+                    .ReadBodyAsync(Context.RequestAborted)
                     .ConfigureAwait(false);
 
                 var bodyStream = body != null ? new MemoryStream(body) : null;
 
-                this.Context.Request.Body = bodyStream;
-                this.Context.Request.ContentLength = bodyStream?.Length;
+                Context.Request.Body = bodyStream;
+                Context.Request.ContentLength = bodyStream?.Length;
             }
         }
         catch (SignatureExpiredException ex)
         {
-            this.Logger.LogWarning(ex, "NWS4 signature expired");
+            Logger.LogWarning(ex, "NWS4 signature expired");
             return AuthenticateResult.NoResult();
         }
         catch (Exception ex)
         {
-            this.Logger.LogError(ex, "Authentication failed for NWS4");
+            Logger.LogError(ex, "Authentication failed for NWS4");
             result = AuthenticateResult.Fail(ex);
         }
 
         return result;
     }
 
-    [return: NotNull]
     protected abstract Task<AuthenticateResult> AuthenticateAsync(AuthenticateRequest request, CancellationToken cancellationToken);
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         var scheme = NWS4AuthenticationDefaults.AuthenticationScheme;
 
-        Response.Headers["WWW-Authenticate"] = $"{scheme} realm=\"{this.Options.Realm}\", charset=\"UTF-8\"";
+        Response.Headers["WWW-Authenticate"] = $"{scheme} realm=\"{Options.Realm}\", charset=\"UTF-8\"";
         return base.HandleChallengeAsync(properties);
     }
-
-    protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
-        => base.HandleForbiddenAsync(properties);
 }

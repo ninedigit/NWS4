@@ -24,7 +24,7 @@ public class HttpRequestHeaders : Dictionary<string, IEnumerable<string>>, IHttp
 
         foreach (var item in collection)
         foreach (var value in item.Value)
-            this.Add(item.Key, value);
+            Add(item.Key, value);
     }
 
     public void Add(string name, string? value)

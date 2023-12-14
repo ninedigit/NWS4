@@ -5,6 +5,43 @@ namespace NineDigit.NWS4.AspNetCore.Tests
     public class AuthorizationHeaderSignerTests
     {
         [Fact]
+        public async Task ExposeExamples_CreateOrganization()
+        {
+            var utcNow = Signer.ParseDateTime("2023-05-30T13:17:01.992Z");
+            var httpMethod = HttpMethod.Post;
+            var url = "http://example.com:8080/api/user?i=1$ref=1&validate";
+            var accessKey = "d948ec22e47790caacce234b792a0f117d85c365";
+            var privateKey = "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19";
+            var headers = new HttpRequestHeaders
+            {
+                { "Content-Type", "application/json" },
+                { "Accept", "application/json" }
+            };
+            var body = @"{""name"":""John""}";
+
+            var dateTimeProvider = new DefaultDateTimeProvider(() => utcNow);
+            var signer = new AuthorizationHeaderSigner(dateTimeProvider);
+
+            var request = new HttpRequest
+            {
+                RequestUri = new Uri(url),
+                Method = httpMethod.ToString(),
+                Headers = headers,
+                Body = Encoding.UTF8.GetBytes(body)
+            };
+
+            var computeSignatureResult = await signer.ComputeSignatureAsync(request, accessKey, privateKey);
+            var signature = computeSignatureResult.Signature;
+            
+            var authData = new AuthData(computeSignatureResult);
+            signer.AuthDataSerializer.Write(request, authData);
+
+            var auth = request.Headers.FindAuthorization();
+            
+            Assert.Equal("NWS4-HMAC-SHA256 Credential%3Dd948ec22e47790caacce234b792a0f117d85c365%2CSignedHeaders%3Daccept%253Bcontent-type%253Bhost%253Bx-nd-content-sha256%253Bx-nd-date%2CTimestamp%3D2023-05-30T13%253A17%253A01.992Z%2CSignature%3D87c7a2057285f0db8dc3b7c95c15fe5476f5ab44b73b3e15990d8b1a837d4ddb", auth);
+        }
+        
+        [Fact]
         public async Task PHPExamples_GetAll()
         {
             var utcNow = Signer.ParseDateTime("2023-05-30T13:17:01.992Z");

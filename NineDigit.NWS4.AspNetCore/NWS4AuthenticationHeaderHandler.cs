@@ -25,8 +25,8 @@ public abstract class NWS4AuthenticationHeaderHandler :
 
     protected override AuthorizationHeaderSigner CreateSigner(NWS4AuthenticationHeaderSchemeOptions options)
     {
-        var logger = this.LoggerFactory.CreateLogger<AuthorizationHeaderSigner>();
-        var dateTimeProvider = new SystemClockDateTimeProvider(this.Clock);
+        var logger = LoggerFactory.CreateLogger<AuthorizationHeaderSigner>();
+        var dateTimeProvider = new SystemClockDateTimeProvider(Clock);
         var signer = new AuthorizationHeaderSigner(options.Signer, dateTimeProvider, logger);
 
         return signer;
@@ -36,19 +36,19 @@ public abstract class NWS4AuthenticationHeaderHandler :
     {
         var authHeader = httpRequest.Headers.FindAuthorization();
 
-        if (string.IsNullOrEmpty(authHeader) || !AuthorizationHeaderSigner.CanValidateSignature(authHeader))
+        if (string.IsNullOrEmpty(authHeader) || !AuthorizationHeaderSigner.CanValidateSignature(authHeader!))
         {
-            this.Logger.LogDebug("Authorization header is not present or is not in NWS4 format");
+            Logger.LogDebug("Authorization header is not present or is not in NWS4 format");
             return null;
         }
 
         try
         {
-            return this.Signer.AuthDataSerializer.Read(authHeader);
+            return Signer.AuthDataSerializer.Read(authHeader);
         }
         catch (FormatException ex)
         {
-            this.Logger.LogWarning(ex, "Invalid NWS4 authentication header");
+            Logger.LogWarning(ex, "Invalid NWS4 authentication header");
             throw new FormatException("Invalid NWS4 authentication header.");
         }
     }

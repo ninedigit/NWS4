@@ -7,7 +7,7 @@ namespace NineDigit.NWS4.AspNetCore;
 
 public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
 {
-    private readonly Func<HttpRequestMessage, Credentials?> credentialsProvider;
+    private readonly Func<HttpRequestMessage, Credentials?> _credentialsProvider;
         
     public NWS4AuthenticationHeaderMessageHandler(
         AuthorizationHeaderSigner signer,
@@ -22,22 +22,22 @@ public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
         HttpMessageHandler innerHandler)
         : base(innerHandler)
     {
-        this.credentialsProvider =
+        _credentialsProvider =
             credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
 
-        this.Signer = signer ?? throw new ArgumentNullException(nameof(signer));
+        Signer = signer ?? throw new ArgumentNullException(nameof(signer));
     }
 
     protected AuthorizationHeaderSigner Signer { get; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage, CancellationToken cancellationToken)
     {
-        var credentials = this.credentialsProvider(requestMessage);
+        var credentials = _credentialsProvider(requestMessage);
         if (credentials != null)
         {
             var request = new HttpRequestMessageWrapper(requestMessage);
 
-            await this.Signer
+            await Signer
                 .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, cancellationToken)
                 .ConfigureAwait(false);
         }

@@ -170,39 +170,39 @@ internal class PushStreamContent : HttpContent
     // Forwards all calls to an inner stream except where overriden in a derived class.
     internal abstract class DelegatingStream : Stream
     {
-        private Stream innerStream;
+        private Stream _innerStream;
 
         #region Properties
 
-        public override bool CanRead => innerStream.CanRead;
+        public override bool CanRead => _innerStream.CanRead;
 
-        public override bool CanSeek => innerStream.CanSeek;
+        public override bool CanSeek => _innerStream.CanSeek;
 
-        public override bool CanWrite => innerStream.CanWrite;
+        public override bool CanWrite => _innerStream.CanWrite;
 
-        public override long Length => innerStream.Length;
+        public override long Length => _innerStream.Length;
 
         public override long Position
         {
-            get => innerStream.Position;
-            set => innerStream.Position = value;
+            get => _innerStream.Position;
+            set => _innerStream.Position = value;
         }
 
         public override int ReadTimeout
         {
-            get => innerStream.ReadTimeout;
-            set => innerStream.ReadTimeout = value;
+            get => _innerStream.ReadTimeout;
+            set => _innerStream.ReadTimeout = value;
         }
 
         public override bool CanTimeout
         {
-            get { return innerStream.CanTimeout; }
+            get { return _innerStream.CanTimeout; }
         }
 
         public override int WriteTimeout
         {
-            get => innerStream.WriteTimeout;
-            set => innerStream.WriteTimeout = value;
+            get => _innerStream.WriteTimeout;
+            set => _innerStream.WriteTimeout = value;
         }
 
         #endregion Properties
@@ -210,14 +210,14 @@ internal class PushStreamContent : HttpContent
         protected DelegatingStream(Stream innerStream)
         {
             Contract.Assert(innerStream != null);
-            this.innerStream = innerStream;
+            this._innerStream = innerStream;
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                innerStream.Dispose();
+                _innerStream.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -226,33 +226,33 @@ internal class PushStreamContent : HttpContent
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return innerStream.Seek(offset, origin);
+            return _innerStream.Seek(offset, origin);
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return innerStream.Read(buffer, offset, count);
+            return _innerStream.Read(buffer, offset, count);
         }
 
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, 
             object? state)
         {
-            return innerStream.BeginRead(buffer, offset, count, callback, state);
+            return _innerStream.BeginRead(buffer, offset, count, callback, state);
         }
 
         public override int EndRead(IAsyncResult asyncResult)
         {
-            return innerStream.EndRead(asyncResult);
+            return _innerStream.EndRead(asyncResult);
         }
 
         public override int ReadByte()
         {
-            return innerStream.ReadByte();
+            return _innerStream.ReadByte();
         }
 #if !NET_4
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return innerStream.ReadAsync(buffer, offset, count, cancellationToken);
+            return _innerStream.ReadAsync(buffer, offset, count, cancellationToken);
         }
 #endif
         #endregion Read
@@ -261,43 +261,43 @@ internal class PushStreamContent : HttpContent
 
         public override void Flush()
         {
-            innerStream.Flush();
+            _innerStream.Flush();
         }
 #if !NET_4
         public override Task FlushAsync(CancellationToken cancellationToken)
         {
-            return innerStream.FlushAsync(cancellationToken);
+            return _innerStream.FlushAsync(cancellationToken);
         }
 #endif
         public override void SetLength(long value)
         {
-            innerStream.SetLength(value);
+            _innerStream.SetLength(value);
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            innerStream.Write(buffer, offset, count);
+            _innerStream.Write(buffer, offset, count);
         }
 
         public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, 
             object? state)
         {
-            return innerStream.BeginWrite(buffer, offset, count, callback, state);
+            return _innerStream.BeginWrite(buffer, offset, count, callback, state);
         }
 
         public override void EndWrite(IAsyncResult asyncResult)
         {
-            innerStream.EndWrite(asyncResult);
+            _innerStream.EndWrite(asyncResult);
         }
 
         public override void WriteByte(byte value)
         {
-            innerStream.WriteByte(value);
+            _innerStream.WriteByte(value);
         }
 #if !NET_4
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return innerStream.WriteAsync(buffer, offset, count, cancellationToken);
+            return _innerStream.WriteAsync(buffer, offset, count, cancellationToken);
         }
 #endif
         #endregion Write

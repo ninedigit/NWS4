@@ -47,7 +47,7 @@ public static class HttpRequestHeadersExtensions
             return true;
         }
 
-        result = default(StringValues?);
+        result = default;
         return false;
     }
 

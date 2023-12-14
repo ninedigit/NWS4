@@ -14,7 +14,14 @@ internal static class ReadOnlyHttpRequestHeadersExtensions
         if (!headers.TryGetValue(key, out string? headerValue))
             throw new KeyNotFoundException($"Header key '{key}' was not found.");
 
-        if (!StringComparer.FromComparison(comparison).Equals(headerValue, value))
+        var stringComparer =
+#if NETSTANDARD2_0
+            comparison.ToStringComparer();
+        #else
+            StringComparer.FromComparison(comparison);
+#endif
+        
+        if (!stringComparer.Equals(headerValue, value))
             throw new InvalidOperationException($"Invalid value for header key '{key}'.");
     }
 }

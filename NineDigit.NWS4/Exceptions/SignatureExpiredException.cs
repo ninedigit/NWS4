@@ -10,15 +10,18 @@ public class SignatureExpiredException : Exception
     {
     }
 
-    public SignatureExpiredException(string message) : base(message)
+    public SignatureExpiredException(string message)
+        : base(message)
     {
     }
 
-    public SignatureExpiredException(string message, Exception innerException) : base(message, innerException)
+    public SignatureExpiredException(string message, Exception innerException)
+        : base(message, innerException)
     {
     }
 
-    protected SignatureExpiredException(SerializationInfo info, StreamingContext context) : base(info, context)
+    protected SignatureExpiredException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
     {
     }
 }

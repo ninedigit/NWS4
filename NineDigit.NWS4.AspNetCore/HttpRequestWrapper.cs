@@ -7,7 +7,7 @@ namespace NineDigit.NWS4.AspNetCore;
 
 internal sealed class HttpRequestWrapper : IHttpRequest
 {
-    private readonly IHttpRequest innerRequest;
+    private readonly IHttpRequest _innerRequest;
 
     public HttpRequestWrapper(HttpRequestMessage requestMessage)
         : this(new HttpRequestMessageWrapper(requestMessage))
@@ -21,13 +21,13 @@ internal sealed class HttpRequestWrapper : IHttpRequest
 
     public HttpRequestWrapper(IHttpRequest request)
     {
-        this.innerRequest = request ?? throw new ArgumentNullException(nameof(request));
+        _innerRequest = request ?? throw new ArgumentNullException(nameof(request));
     }
 
-    public Uri? RequestUri => innerRequest.RequestUri;
-    public string Method => innerRequest.Method;
-    public IHttpRequestHeaders Headers => innerRequest.Headers;
+    public Uri? RequestUri => _innerRequest.RequestUri;
+    public string Method => _innerRequest.Method;
+    public IHttpRequestHeaders Headers => _innerRequest.Headers;
 
     public Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default)
-        => innerRequest.ReadBodyAsync(cancellationToken);
+        => _innerRequest.ReadBodyAsync(cancellationToken);
 }

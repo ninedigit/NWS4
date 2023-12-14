@@ -15,9 +15,9 @@ internal static class HttpRequestExtensions
 
         var isChunked = xNdContentSha256 != null && contentEncodings != null && contentType != null &&
                         StringComparer.Ordinal.Equals(xNdContentSha256, AuthorizationHeaderChunkedSigner.StreamingBodySha256) &&
-                        contentEncodings.Contains(AuthorizationHeaderChunkedSigner.ContentEncodingNwsChunked, StringComparison.Ordinal) &&
+                        contentEncodings.Contains(AuthorizationHeaderChunkedSigner.ContentEncodingNwsChunked) &&
                         StringComparer.Ordinal.Equals(contentType, MediaTypeNames.Text.Plain) &&
-                        long.TryParse(decodedContentLength, NumberStyles.Integer, CultureInfo.InvariantCulture, out long contentLength);
+                        long.TryParse(decodedContentLength, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
 
         return isChunked;
     }

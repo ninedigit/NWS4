@@ -6,7 +6,7 @@ public sealed class DefaultDateTimeProvider : IDateTimeProvider
 {
     public static DefaultDateTimeProvider Instance { get; } = new();
 
-    private readonly Func<DateTime> dateTimeFactory;
+    private readonly Func<DateTime> _dateTimeFactory;
 
     public DefaultDateTimeProvider()
         : this(GetUtcNow)
@@ -14,11 +14,11 @@ public sealed class DefaultDateTimeProvider : IDateTimeProvider
 
     public DefaultDateTimeProvider(Func<DateTime> utcDateTimeFactory)
     {
-        this.dateTimeFactory = utcDateTimeFactory
+        _dateTimeFactory = utcDateTimeFactory
                                ?? throw new ArgumentNullException(nameof(utcDateTimeFactory));
     }
 
-    public DateTime UtcNow => this.dateTimeFactory();
+    public DateTime UtcNow => _dateTimeFactory();
 
     private static DateTime GetUtcNow()
         => DateTime.UtcNow;

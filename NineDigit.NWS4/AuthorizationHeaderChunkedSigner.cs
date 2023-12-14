@@ -84,7 +84,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         if (blockSize < MinBlockSize)
             throw new ArgumentOutOfRangeException($"Min block size is {MinBlockSize}.", nameof(MinBlockSize));
 
-        var signResult = await this.SignSeedRequestAsync(request, accessKey, privateKey, blockSize, cancellationToken)
+        var signResult = await SignSeedRequestAsync(request, accessKey, privateKey, blockSize, cancellationToken)
             .ConfigureAwait(false);
 
         // start consuming the data payload in blocks which we subsequently chunk; this prefixes
@@ -102,19 +102,19 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             return RawChunks.Empty;
 
         using var inputStream = new MemoryStream(content);
-        long bytesRead = 0;
+        long bytesRead;
         
         var rawChunks = new List<ReadOnlyMemory<byte>>();
         var lastComputedSignature = signResult.Signature;
 
         while ((bytesRead = await inputStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
         {
-            var chunk = this.ConstructSignedChunk(bytesRead, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out lastComputedSignature);
+            var chunk = ConstructSignedChunk(bytesRead, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out lastComputedSignature);
             rawChunks.Add(chunk);
         }
 
         // last step is to send a signed zero-length chunk to complete the upload
-        var finalChunk = this.ConstructSignedChunk(0, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out _);
+        var finalChunk = ConstructSignedChunk(0, buffer, signResult.Timestamp, lastComputedSignature, signResult.SigningKey, out _);
         rawChunks.Add(finalChunk);
 
         var result = new RawChunks(rawChunks);
@@ -234,7 +234,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         chunkHeader.Append(dataToChunk.Length.ToString("X"));
 
         var chunkSignature = ComputeChunkSignature(
-            dateTimeStamp, lastComputedSignature, dataToChunk, signingKey, this.Logger);
+            dateTimeStamp, lastComputedSignature, dataToChunk, signingKey, Logger);
 
         // cache the signature to include with the next chunk's signature computation
         computedSignature = chunkSignature;
@@ -245,7 +245,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         chunkHeader.Append(ChunkSignatureHeader + chunkSignature);
         chunkHeader.Append(ClRf);
 
-        this.Logger.LogDebug("Chunk header:\n{Header}", chunkHeader);
+        Logger.LogDebug("Chunk header:\n{Header}", chunkHeader);
 
         try
         {
@@ -332,7 +332,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
 
         //
 
-        Chunk? chunk = null;
+        Chunk? chunk;
         byte[]? contentBytes = null;
         var chunks = new List<Chunk>();
 
@@ -370,7 +370,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             authData.Credential,
             privateKey,
             dateTime,
-            this.Logger);
+            Logger);
 
         if (computeSignatureResult.Signature != authData.Signature)
             throw new InvalidOperationException("Invalid signature.");
@@ -381,7 +381,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         {
             chunk = chunks[i];
             var chunkData = Encoding.UTF8.GetBytes(chunk.Data);
-            lastSignature = ComputeChunkSignature(computeSignatureResult.Timestamp, lastSignature, chunkData, computeSignatureResult.SigningKey, this.Logger);
+            lastSignature = ComputeChunkSignature(computeSignatureResult.Timestamp, lastSignature, chunkData, computeSignatureResult.SigningKey, Logger);
 
             if (lastSignature != chunk.Header.Signature)
                 throw new InvalidOperationException($"Invalid chunk #{i} signature.");
@@ -403,11 +403,11 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         request.Headers.Set(HeaderNames.ContentType, MediaTypeNames.Text.Plain);
         request.Headers.Set(XNDDecodedContentLength, content.Length.ToString(CultureInfo.InvariantCulture));
 
-        var totalLength = CalculateChunkedContentLength(content.Length, blockSize, this.Logger);
+        var totalLength = CalculateChunkedContentLength(content.Length, blockSize, Logger);
 
         request.Headers.Set(HeaderNames.ContentLength, totalLength.ToString(CultureInfo.InvariantCulture));
 
-        var computeSignatureResult = this.ComputeSignature(
+        var computeSignatureResult = ComputeSignature(
             request.RequestUri,
             request.Method,
             request.Headers,
@@ -416,7 +416,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             privateKey);
 
         var authData = new AuthData(computeSignatureResult);
-        this.AuthDataSerializer.Write(request, authData);
+        AuthDataSerializer.Write(request, authData);
 
         return computeSignatureResult;
     }
@@ -487,21 +487,21 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             if (body < 0)
                 throw new ArgumentOutOfRangeException(nameof(body));
 
-            this.Body = body;
-            this.Total = GetTotalLength(body);
+            Body = body;
+            Total = GetTotalLength(body);
         }
 
         public long Body { get; }
         public long Total { get; }
 
         public override int GetHashCode()
-            => HashCode.Combine(this.Body, this.Total);
+            => HashCode.Combine(Body, Total);
 
         public override bool Equals(object? obj)
-            => obj is ChunkLength len && this.Equals(len);
+            => obj is ChunkLength len && Equals(len);
 
         public bool Equals(ChunkLength other)
-            => this.Body == other.Body && this.Total == other.Total;
+            => Body == other.Body && Total == other.Total;
 
         private static long GetTotalLength(long bodyLength)
             => bodyLength.ToString("X").Length

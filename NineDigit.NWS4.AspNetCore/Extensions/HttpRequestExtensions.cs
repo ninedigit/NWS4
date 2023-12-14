@@ -7,10 +7,10 @@ namespace NineDigit.NWS4.AspNetCore;
 
 internal static class HttpRequestExtensions
 {
-    public static Task<byte[]> PeekBodyAsync(this Microsoft.AspNetCore.Http.HttpRequest request, CancellationToken cancellationToken = default)
+    public static Task<byte[]> PeekBodyAsync(this HttpRequest request, CancellationToken cancellationToken = default)
         => request.PeekBodyAsync(bufferLength: 8192, cancellationToken);
 
-    public static async Task<byte[]> PeekBodyAsync(this Microsoft.AspNetCore.Http.HttpRequest request, int bufferLength, CancellationToken cancellationToken = default)
+    public static async Task<byte[]> PeekBodyAsync(this HttpRequest request, int bufferLength, CancellationToken cancellationToken = default)
     {
         try
         {

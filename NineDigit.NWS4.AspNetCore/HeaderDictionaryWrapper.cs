@@ -13,29 +13,29 @@ internal class HeaderDictionaryWrapper : IHttpRequestHeaders
 
     public HeaderDictionaryWrapper(IHeaderDictionary headers)
     {
-        this._headers = headers ?? throw new ArgumentNullException(nameof(headers));
+        _headers = headers ?? throw new ArgumentNullException(nameof(headers));
     }
 
     public void Add(string name, string? value)
     {
-        lock (this._headers)
+        lock (_headers)
         {
             var stringValues = new StringValues(value);
-            this._headers.Append(name, stringValues);
+            _headers.Append(name, stringValues);
         }
     }
 
     public bool Remove(string name)
     {
-        lock (this._headers)
-            return this._headers.Remove(name);
+        lock (_headers)
+            return _headers.Remove(name);
     }
 
     public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
     {
-        lock (this._headers)
+        lock (_headers)
         {
-            if (this._headers.TryGetValue(name, out StringValues stringValues))
+            if (_headers.TryGetValue(name, out StringValues stringValues))
             {
                 values = stringValues.ToArray();
                 return true;
@@ -50,11 +50,11 @@ internal class HeaderDictionaryWrapper : IHttpRequestHeaders
 
     public IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumerator()
     {
-        lock (this._headers)
+        lock (_headers)
         {
-            foreach (var key in this._headers.Keys)
+            foreach (var key in _headers.Keys)
             {
-                var values = this._headers.GetCommaSeparatedValues(key);
+                var values = _headers.GetCommaSeparatedValues(key);
                 var result = new KeyValuePair<string, IEnumerable<string>>(key, values);
 
                 yield return result;
@@ -63,5 +63,5 @@ internal class HeaderDictionaryWrapper : IHttpRequestHeaders
     }
 
     IEnumerator IEnumerable.GetEnumerator()
-        => this.GetEnumerator();
+        => GetEnumerator();
 }

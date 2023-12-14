@@ -5,17 +5,17 @@ namespace NineDigit.NWS4.AspNetCore;
 
 internal class SystemClockDateTimeProvider : IDateTimeProvider, ISystemClock
 {
-    private readonly ISystemClock systemClock;
+    private readonly ISystemClock _systemClock;
 
     public SystemClockDateTimeProvider(ISystemClock systemClock)
     {
-        this.systemClock = systemClock
+        _systemClock = systemClock
                            ?? throw new ArgumentNullException(nameof(systemClock));
     }
 
     public DateTime UtcNow
-        => this.systemClock.UtcNow.UtcDateTime;
+        => _systemClock.UtcNow.UtcDateTime;
 
     DateTimeOffset ISystemClock.UtcNow
-        => systemClock.UtcNow;
+        => _systemClock.UtcNow;
 }

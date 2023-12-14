@@ -11,22 +11,21 @@ internal sealed class HttpRequestMessageHeadersWrapper : IHttpRequestHeaders
 
     public HttpRequestMessageHeadersWrapper(System.Net.Http.Headers.HttpRequestHeaders headers)
     {
-        this._headers = headers
-                        ?? throw new ArgumentNullException(nameof(headers));
+        _headers = headers ?? throw new ArgumentNullException(nameof(headers));
     }
 
     public void Add(string name, string? value)
-        => this._headers.TryAddWithoutValidation(name, value);
+        => _headers.TryAddWithoutValidation(name, value);
 
     public bool Remove(string name)
-        => this._headers.Remove(name);
+        => _headers.Remove(name);
 
     public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
-        => this._headers.TryGetValues(name, out values);
+        => _headers.TryGetValues(name, out values);
 
     public IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumerator()
-        => this._headers.GetEnumerator();
+        => _headers.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
-        => this.GetEnumerator();
+        => GetEnumerator();
 }

@@ -4,7 +4,7 @@ namespace NineDigit.NWS4;
 
 public sealed class ComputeSignatureResult
 {
-    private readonly byte[] signingKey;
+    private readonly byte[] _signingKey;
 
     internal ComputeSignatureResult(
         string scheme,
@@ -15,12 +15,12 @@ public sealed class ComputeSignatureResult
         string signature
     )
     {
-        this.Scheme = scheme;
-        this.PublicKey = publicKey;
-        this.SignedHeaderNames = signedHeaderNames;
-        this.Timestamp = timestamp;
-        this.Signature = signature;
-        this.signingKey = signingKey.ToArray();
+        Scheme = scheme;
+        PublicKey = publicKey;
+        SignedHeaderNames = signedHeaderNames;
+        Timestamp = timestamp;
+        Signature = signature;
+        _signingKey = signingKey.ToArray();
     }
 
     public string Scheme { get; }
@@ -29,5 +29,5 @@ public sealed class ComputeSignatureResult
     public string Timestamp { get; }
     public string Signature { get; }
     public byte[] SigningKey
-        => this.signingKey.ToArray();
+        => _signingKey.ToArray();
 }

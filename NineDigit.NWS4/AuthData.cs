@@ -9,20 +9,20 @@ public sealed class AuthData
         if (result is null)
             throw new ArgumentNullException(nameof(result));
             
-        this.Scheme = result.Scheme;
-        this.Credential = result.PublicKey;
-        this.SignedHeaders = result.SignedHeaderNames;
-        this.Timestamp = result.Timestamp;
-        this.Signature = result.Signature;
+        Scheme = result.Scheme;
+        Credential = result.PublicKey;
+        SignedHeaders = result.SignedHeaderNames;
+        Timestamp = result.Timestamp;
+        Signature = result.Signature;
     }
 
     public AuthData(string scheme, string credential, string signedHeaders, string timestamp, string signature)
     {
-        this.Scheme = scheme ?? throw new ArgumentNullException(nameof(scheme));
-        this.Credential = credential ?? throw new ArgumentNullException(nameof(credential));
-        this.SignedHeaders = signedHeaders ?? throw new ArgumentNullException(nameof(signedHeaders));
-        this.Timestamp = timestamp ?? throw new ArgumentNullException(nameof(timestamp));
-        this.Signature = signature ?? throw new ArgumentNullException(nameof(signature));
+        Scheme = scheme ?? throw new ArgumentNullException(nameof(scheme));
+        Credential = credential ?? throw new ArgumentNullException(nameof(credential));
+        SignedHeaders = signedHeaders ?? throw new ArgumentNullException(nameof(signedHeaders));
+        Timestamp = timestamp ?? throw new ArgumentNullException(nameof(timestamp));
+        Signature = signature ?? throw new ArgumentNullException(nameof(signature));
     }
 
     public string Scheme { get; }

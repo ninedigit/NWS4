@@ -26,8 +26,8 @@ public abstract class NWS4AuthenticationHeaderChunkedHandler :
     protected override AuthorizationHeaderChunkedSigner CreateSigner(
         NWS4AuthenticationHeaderChunkedSchemeOptions options)
     {
-        var logger = this.LoggerFactory.CreateLogger<AuthorizationHeaderChunkedSigner>();
-        var dateTimeProvider = new SystemClockDateTimeProvider(this.Clock);
+        var logger = LoggerFactory.CreateLogger<AuthorizationHeaderChunkedSigner>();
+        var dateTimeProvider = new SystemClockDateTimeProvider(Clock);
         var signer = new AuthorizationHeaderChunkedSigner(options.Signer, dateTimeProvider, logger);
 
         return signer;
@@ -37,19 +37,19 @@ public abstract class NWS4AuthenticationHeaderChunkedHandler :
     {
         var authHeader = httpRequest.Headers.FindAuthorization();
 
-        if (string.IsNullOrEmpty(authHeader) || !AuthorizationHeaderSigner.CanValidateSignature(authHeader))
+        if (string.IsNullOrEmpty(authHeader) || !AuthorizationHeaderSigner.CanValidateSignature(authHeader!))
         {
-            this.Logger.LogDebug("Authorization header is not present or is not in NWS4 format");
+            Logger.LogDebug("Authorization header is not present or is not in NWS4 format");
             return null;
         }
 
         try
         {
-            return this.Signer.AuthDataSerializer.Read(authHeader);
+            return Signer.AuthDataSerializer.Read(authHeader);
         }
         catch (FormatException ex)
         {
-            this.Logger.LogWarning(ex, "Invalid NWS4 authentication header");
+            Logger.LogWarning(ex, "Invalid NWS4 authentication header");
             throw new FormatException("Invalid NWS4 authentication header.");
         }
     }

@@ -9,18 +9,18 @@ public class NWS4AuthenticationSchemeOptions : AuthenticationSchemeOptions
         
     public NWS4AuthenticationSchemeOptions()
     {
-        this.RequestTimeWindow = TimeSpan.FromSeconds(300);
+        RequestTimeWindow = TimeSpan.FromSeconds(300);
     }
 
     public TimeSpan RequestTimeWindow
     {
-        get => this._requestTimeWindow;
+        get => _requestTimeWindow;
         set
         {
             if (value.Ticks < 0)
                 throw new ArgumentOutOfRangeException(nameof(value));
 
-            this._requestTimeWindow = value;
+            _requestTimeWindow = value;
         }
     }
 
@@ -32,7 +32,7 @@ public class NWS4AuthenticationSchemeOptions<TSignerOptions> : NWS4Authenticatio
 {
     public NWS4AuthenticationSchemeOptions()
     {
-        this.Signer = new TSignerOptions();
+        Signer = new TSignerOptions();
     }
         
     public TSignerOptions Signer { get; }
