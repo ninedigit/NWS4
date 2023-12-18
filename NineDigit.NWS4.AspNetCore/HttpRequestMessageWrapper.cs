@@ -11,7 +11,7 @@ internal sealed class HttpRequestMessageWrapper : IHttpRequest
 
     public HttpRequestMessageWrapper(HttpRequestMessage message)
     {
-        message = message ?? throw new ArgumentNullException(nameof(message));
+        _message = message ?? throw new ArgumentNullException(nameof(message));
         Headers = new HttpRequestMessageHeadersWrapper(message.Headers);
     }
 

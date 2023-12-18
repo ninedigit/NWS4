@@ -151,7 +151,7 @@ internal class PushStreamContent : HttpContent
 
     internal class CompleteTaskOnCloseStream : DelegatingStream
     {
-        private TaskCompletionSource<bool> _serializeToStreamTask;
+        private readonly TaskCompletionSource<bool> _serializeToStreamTask;
 
         public CompleteTaskOnCloseStream(Stream innerStream, TaskCompletionSource<bool> serializeToStreamTask)
             : base(innerStream)
@@ -170,7 +170,7 @@ internal class PushStreamContent : HttpContent
     // Forwards all calls to an inner stream except where overriden in a derived class.
     internal abstract class DelegatingStream : Stream
     {
-        private Stream _innerStream;
+        private readonly Stream _innerStream;
 
         #region Properties
 
@@ -194,10 +194,7 @@ internal class PushStreamContent : HttpContent
             set => _innerStream.ReadTimeout = value;
         }
 
-        public override bool CanTimeout
-        {
-            get { return _innerStream.CanTimeout; }
-        }
+        public override bool CanTimeout => _innerStream.CanTimeout;
 
         public override int WriteTimeout
         {
@@ -210,7 +207,7 @@ internal class PushStreamContent : HttpContent
         protected DelegatingStream(Stream innerStream)
         {
             Contract.Assert(innerStream != null);
-            this._innerStream = innerStream;
+            _innerStream = innerStream;
         }
 
         protected override void Dispose(bool disposing)

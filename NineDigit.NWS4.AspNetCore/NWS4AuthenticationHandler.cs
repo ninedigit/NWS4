@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading;
@@ -86,14 +85,15 @@ public abstract class NWS4AuthenticationHandler<TSigner, TOptions> : Authenticat
 
             if (result.Succeeded)
             {
-                var body = await authenticateRequest
-                    .ReadBodyAsync(Context.RequestAborted)
-                    .ConfigureAwait(false);
+                var body = await authenticateRequest.ReadBodyAsync(Context.RequestAborted).ConfigureAwait(false);
 
-                var bodyStream = body != null ? new MemoryStream(body) : null;
+                if (body != null)
+                {
+                    var bodyStream = new MemoryStream(body);
 
-                Context.Request.Body = bodyStream;
-                Context.Request.ContentLength = bodyStream?.Length;
+                    Context.Request.Body = bodyStream;
+                    Context.Request.ContentLength = bodyStream.Length;
+                }
             }
         }
         catch (SignatureExpiredException ex)
