@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NineDigit.NWS4.AspNetCore;
+namespace NineDigit.NWS4;
 
 public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
 {

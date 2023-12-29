@@ -3,7 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace NineDigit.NWS4.AspNetCore;
+namespace NineDigit.NWS4;
 
 internal static class HttpRequestMessageExtensions
 {

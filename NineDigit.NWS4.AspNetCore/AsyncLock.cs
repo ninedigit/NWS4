@@ -6,7 +6,7 @@ namespace NineDigit.NWS4.AspNetCore;
 
 internal sealed class AsyncLock : IDisposable
 {
-    private readonly SemaphoreSlim _locker = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _locker = new(1, 1);
     private bool _disposed;
 
     internal bool Locked

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NineDigit.NWS4.AspNetCore;
+namespace NineDigit.NWS4;
 
 public sealed class Credentials
 {

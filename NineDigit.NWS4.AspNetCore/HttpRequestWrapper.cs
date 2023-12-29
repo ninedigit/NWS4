@@ -9,11 +9,6 @@ internal sealed class HttpRequestWrapper : IHttpRequest
 {
     private readonly IHttpRequest _innerRequest;
 
-    public HttpRequestWrapper(HttpRequestMessage requestMessage)
-        : this(new HttpRequestMessageWrapper(requestMessage))
-    {
-    }
-
     public HttpRequestWrapper(Microsoft.AspNetCore.Http.HttpRequest httpRequest)
         : this(new AspNetCoreHttpRequestWrapper(httpRequest))
     {

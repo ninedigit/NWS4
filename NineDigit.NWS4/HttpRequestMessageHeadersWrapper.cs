@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace NineDigit.NWS4.AspNetCore;
+namespace NineDigit.NWS4;
 
 internal sealed class HttpRequestMessageHeadersWrapper : IHttpRequestHeaders
 {
