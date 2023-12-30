@@ -8,8 +8,8 @@ namespace NineDigit.NWS4;
 
 public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
 {
-    private readonly Func<HttpRequestMessage, Credentials?> _credentialsProvider;
-        
+    private readonly IAsyncCredentialsProvider _credentialsProvider;
+    
     public NWS4AuthenticationHeaderChunkedMessageHandler(
         AuthorizationHeaderChunkedSigner signer,
         Func<HttpRequestMessage, Credentials?> credentialsProvider
@@ -21,6 +21,36 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
         long? maxRequestBodySize,
         AuthorizationHeaderChunkedSigner signer,
         Func<HttpRequestMessage, Credentials?> credentialsProvider)
+        : this(maxRequestBodySize, signer, new AsyncCredentialsProvider(credentialsProvider))
+    {
+    }
+    
+    public NWS4AuthenticationHeaderChunkedMessageHandler(
+        AuthorizationHeaderChunkedSigner signer,
+        ICredentialsProvider credentialsProvider
+    ) : this(maxRequestBodySize: default, signer, credentialsProvider)
+    {
+    }
+
+    public NWS4AuthenticationHeaderChunkedMessageHandler(
+        long? maxRequestBodySize,
+        AuthorizationHeaderChunkedSigner signer,
+        ICredentialsProvider credentialsProvider)
+        : this(maxRequestBodySize, signer, new AsyncCredentialsProvider(credentialsProvider))
+    {
+    }
+    
+    public NWS4AuthenticationHeaderChunkedMessageHandler(
+        AuthorizationHeaderChunkedSigner signer,
+        IAsyncCredentialsProvider credentialsProvider
+    ) : this(maxRequestBodySize: default, signer, credentialsProvider)
+    {
+    }
+
+    public NWS4AuthenticationHeaderChunkedMessageHandler(
+        long? maxRequestBodySize,
+        AuthorizationHeaderChunkedSigner signer,
+        IAsyncCredentialsProvider credentialsProvider)
     {
         if (maxRequestBodySize.HasValue && maxRequestBodySize.Value < AuthorizationHeaderChunkedSigner.MinBlockSize)
             throw new ArgumentOutOfRangeException(nameof(maxRequestBodySize));
@@ -34,9 +64,13 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
     public long? MaxRequestBodySize { get; set; }
     protected AuthorizationHeaderChunkedSigner Signer { get; }
 
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage requestMessage,
+        CancellationToken cancellationToken)
     {
-        var credentials = _credentialsProvider(requestMessage);
+        var credentials = await _credentialsProvider.GetCredentialsAsync(requestMessage, cancellationToken)
+            .ConfigureAwait(false);
+        
         if (credentials != null)
         {
             var maxBodySize = MaxRequestBodySize;
