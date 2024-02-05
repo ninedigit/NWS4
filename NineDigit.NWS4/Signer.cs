@@ -142,12 +142,13 @@ public abstract class Signer
 
         var nowTimeStamp = DateTimeProvider.UtcNow;
         var timeStamp = authData.GetUtcDateTime();
+        
         var isOutOfTimeWindow = requestTimeWindow != Timeout.InfiniteTimeSpan &&
-                                (timeStamp < nowTimeStamp.Add(-requestTimeWindow) ||
-                                 timeStamp > nowTimeStamp.Add(requestTimeWindow));
+                                (timeStamp < nowTimeStamp.AddMilliseconds(-requestTimeWindow.TotalMilliseconds / 2) ||
+                                 timeStamp > nowTimeStamp.AddMilliseconds(requestTimeWindow.TotalMilliseconds / 2));
 
         if (isOutOfTimeWindow)
-            throw new SignatureExpiredException($"Signature expired.");
+            throw new SignatureExpiredException(nowTimeStamp, timeStamp, requestTimeWindow);
 
         return content;
     }
