@@ -245,7 +245,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         chunkHeader.Append(ChunkSignatureHeader + chunkSignature);
         chunkHeader.Append(ClRf);
 
-        Logger.LogDebug("Chunk header:\n{Header}", chunkHeader);
+        Logger.LogTrace("Chunk header:\n{Header}", chunkHeader);
 
         try
         {
@@ -291,7 +291,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             signingKey,
             Encoding.UTF8.GetBytes(chunkStringToSign)).ToHexString(Casing.Lower);
 
-        logger.LogDebug("Chunk string to sign:\n{ChunkStringToSign}\nChunk signature:\n{ChunkSignature}",
+        logger.LogTrace("Chunk string to sign:\n{ChunkStringToSign}\nChunk signature:\n{ChunkSignature}",
             chunkStringToSign, chunkSignature);
 
         return chunkSignature;

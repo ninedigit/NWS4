@@ -218,7 +218,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
             signatureString = signature.ToHexString(Casing.Lower);
         }
 
-        logger.LogDebug(
+        logger.LogTrace(
             "Canonical Request:\n\"{CanonicalRequest}\"\nString to sign:\n{StringToSign}\nSignature:\n{Signature}",
             canonicalRequest, stringToSign, signatureString);
             
