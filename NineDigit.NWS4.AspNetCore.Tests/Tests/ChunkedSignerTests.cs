@@ -32,8 +32,8 @@ namespace NineDigit.NWS4.AspNetCore.Tests
 
             var url = "http://ekasa-cloud-int.ninedigit.sk/api/v1/registrations/receipts";
             var httpMethod = HttpMethods.Post;
-            var accessKey = "d51fbd43e205b16a806ca2399c7023b8";
-            var privateKey = "1adaee8c378449453dcf40625d20d6b65b02f51aa28191df874296c1f13c8243";
+            using var credentials = new Credentials("d51fbd43e205b16a806ca2399c7023b8",
+                "1adaee8c378449453dcf40625d20d6b65b02f51aa28191df874296c1f13c8243");
             var headers = new HttpRequestHeaders()
             {
                 { "__tenant", "39ff67bf-0182-4903-c820-2dd75eed9d21" }
@@ -44,25 +44,23 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             var dateTimeProvider = new DefaultDateTimeProvider(() => utcNow);
             var signer = new AuthorizationHeaderChunkedSigner(dateTimeProvider);
 
-            var request = new HttpRequest()
+            var request = new HttpRequest
             {
                 RequestUri = new Uri(url),
-                Method = httpMethod.ToString(),
+                Method = httpMethod,
                 Headers = headers,
                 Body = Encoding.UTF8.GetBytes(body)
             };
 
-            var rawChunks = await signer.SignRequestAsync(request, accessKey, privateKey, blockSize);
+            var rawChunks = await signer.SignRequestAsync(request, credentials, blockSize);
 
             request.Body = rawChunks.ToArray();
 
-            var bodyBytes = await signer.ValidateSignatureAsync(request, privateKey, TimeSpan.FromSeconds(300));
+            var bodyBytes = await signer.ValidateSignatureAsync(request, credentials.PrivateKey, TimeSpan.FromSeconds(300));
             var receivedBody = bodyBytes != null ? Encoding.UTF8.GetString(bodyBytes) : null;
 
             Assert.Equal(9, request.Headers.Count());
-            Assert.True(request.Headers.TryGet("Authorization", out IEnumerable<string?>? values));
-            
-            var value = Assert.Single(values);
+            Assert.True(request.Headers.TryGet("Authorization", out var value));
             
             Assert.Equal("NWS4-HMAC-SHA256 Credential%3Dd51fbd43e205b16a806ca2399c7023b8%2CSignedHeaders%3Dcontent-encoding%253Bcontent-length%253Bcontent-type%253Bhost%253Bx-nd-content-sha256%253Bx-nd-date%253Bx-nws-decoded-content-length%253B__tenant%2CTimestamp%3D2022-02-07T10%253A47%253A53.026Z%2CSignature%3Da9a63825ec5c79e8350e4db3aad1faf16cf5a95b6b0887776216c0787fe74547", value);
             Assert.Equal(body, receivedBody);

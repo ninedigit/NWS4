@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -76,15 +77,14 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
 
     public async Task<RawChunks> SignRequestAsync(
         IHttpRequest request,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         long blockSize,
         CancellationToken cancellationToken = default)
     {
         if (blockSize < MinBlockSize)
             throw new ArgumentOutOfRangeException($"Min block size is {MinBlockSize}.", nameof(MinBlockSize));
 
-        var signResult = await SignSeedRequestAsync(request, accessKey, privateKey, blockSize, cancellationToken)
+        var signResult = await SignSeedRequestAsync(request, credentials, blockSize, cancellationToken)
             .ConfigureAwait(false);
 
         // start consuming the data payload in blocks which we subsequently chunk; this prefixes
@@ -318,7 +318,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
                - ClRf.Length;
     }
 
-    protected override async Task<byte[]?> ValidateSignatureAsync(IHttpRequest request, AuthData authData, string privateKey, CancellationToken cancellationToken = default)
+    protected override async Task<byte[]?> ValidateSignatureAsync(IHttpRequest request, AuthData authData, SecureString privateKey, CancellationToken cancellationToken = default)
     {
         if (request is null)
             throw new ArgumentNullException(nameof(request));
@@ -361,14 +361,14 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         var signedHeaderNames = ParseHeaderNames(authData.SignedHeaders);
         var headers = request.Headers.ToReadOnlyDictionary();
         var signedHeaders = GetHeaders(headers, signedHeaderNames).ToReadOnlyDictionary();
+        using var credentials = new Credentials(authData.Credential, privateKey);
 
         var computeSignatureResult = ComputeSignature(
             requestUri,
             httpMethod,
             signedHeaders,
             StreamingBodySha256,
-            authData.Credential,
-            privateKey,
+            credentials,
             dateTime,
             Logger);
 
@@ -390,7 +390,11 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
         return contentBytes;
     }
 
-    private async Task<ComputeSignatureResult> SignSeedRequestAsync(IHttpRequest request, string accessKey, string privateKey, long blockSize, CancellationToken cancellationToken = default)
+    private async Task<ComputeSignatureResult> SignSeedRequestAsync(
+        IHttpRequest request,
+        Credentials credentials,
+        long blockSize,
+        CancellationToken cancellationToken = default)
     {
         if (request is null)
             throw new ArgumentNullException(nameof(request));
@@ -412,8 +416,7 @@ public class AuthorizationHeaderChunkedSigner : AuthorizationHeaderSigner
             request.Method,
             request.Headers,
             StreamingBodySha256,
-            accessKey,
-            privateKey);
+            credentials);
 
         var authData = new AuthData(computeSignatureResult);
         AuthDataSerializer.Write(request, authData);

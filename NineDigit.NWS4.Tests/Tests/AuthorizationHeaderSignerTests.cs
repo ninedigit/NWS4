@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace NineDigit.NWS4.AspNetCore.Tests
@@ -10,8 +11,8 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             var utcNow = Signer.ParseDateTime("2023-05-30T13:17:01.992Z");
             var httpMethod = HttpMethod.Post;
             var url = "http://example.com:8080/api/user?i=1$ref=1&validate";
-            var accessKey = "d948ec22e47790caacce234b792a0f117d85c365";
-            var privateKey = "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19";
+            using var credentials = new Credentials("d948ec22e47790caacce234b792a0f117d85c365",
+                "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19");
             var headers = new HttpRequestHeaders
             {
                 { "Content-Type", "application/json" },
@@ -30,7 +31,7 @@ namespace NineDigit.NWS4.AspNetCore.Tests
                 Body = Encoding.UTF8.GetBytes(body)
             };
 
-            var computeSignatureResult = await signer.ComputeSignatureAsync(request, accessKey, privateKey);
+            var computeSignatureResult = await signer.ComputeSignatureAsync(request, credentials);
             var signature = computeSignatureResult.Signature;
             
             var authData = new AuthData(computeSignatureResult);
@@ -47,8 +48,8 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             var utcNow = Signer.ParseDateTime("2023-05-30T13:17:01.992Z");
             var httpMethod = HttpMethod.Post;
             var url = "http://example.com:8080/api/user?i=1$ref=1&validate";
-            var accessKey = "d948ec22e47790caacce234b792a0f117d85c365";
-            var privateKey = "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19";
+            using var credentials = new Credentials("d948ec22e47790caacce234b792a0f117d85c365",
+                "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19");
             var headers = new HttpRequestHeaders
             {
                 { "Content-Type", "application/json" },
@@ -67,7 +68,7 @@ namespace NineDigit.NWS4.AspNetCore.Tests
                 Body = Encoding.UTF8.GetBytes(body)
             };
 
-            var computeSignatureResult = await signer.ComputeSignatureAsync(request, accessKey, privateKey);
+            var computeSignatureResult = await signer.ComputeSignatureAsync(request, credentials);
             var signature = computeSignatureResult.Signature;
             
             var authData = new AuthData(computeSignatureResult);
@@ -86,8 +87,8 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             var httpMethod = HttpMethod.Put;
             var url = "http://213.160.191.53:4000/api/plus/GQR5xWLN";
             var proxyHost = "dr-sam.eu.ngrok.io";
-            var accessKey = "d948ec22e47790caacce234b792a0f117d85c365";
-            var privateKey = "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19";
+            using var credentials = new Credentials("d948ec22e47790caacce234b792a0f117d85c365",
+                "5070adfb2bedf1c0c97d5c8cfa8c794d513249b802ea10596a175d88828abc19");
             var headers = new HttpRequestHeaders
             {
                 { "User-Agent", "GuzzleHttp/7" },
@@ -113,18 +114,17 @@ namespace NineDigit.NWS4.AspNetCore.Tests
                 Body = Encoding.UTF8.GetBytes(body)
             };
 
-            await signer.SignRequestAsync(request, accessKey, privateKey);
+            await signer.SignRequestAsync(request, credentials);
 
             Assert.Equal(7, request.Headers.Count());
-            Assert.True(request.Headers.TryGet("Authorization", out IEnumerable<string>? values));
-            var value = Assert.Single(values);
+            Assert.True(request.Headers.TryGet("Authorization", out var value));
             Assert.Equal("NWS4-HMAC-SHA256 Credential%3Dd948ec22e47790caacce234b792a0f117d85c365%2CSignedHeaders%3Daccept-encoding%253Bcontent-type%253Bhost%253Buser-agent%253Bx-nd-content-sha256%253Bx-nd-date%2CTimestamp%3D2023-05-30T07%253A37%253A59.390Z%2CSignature%3D6dc1d647dcbd3c9180fcc5f59d110bdabc94493e1a92ed36deaeddd8e1d512c3", value);
 
             request.Headers.Remove(HeaderNames.Host);
             request.Headers.Add(HeaderNames.Host, proxyHost);
             request.Headers.Add(HttpRequestHeaderNames.XForwardedHost, $"{request.RequestUri.Host}:{request.RequestUri.Port}");
             
-            await signer.ValidateSignatureAsync(request, privateKey, requestTimeWindow, CancellationToken.None)
+            await signer.ValidateSignatureAsync(request, credentials.PrivateKey, requestTimeWindow, CancellationToken.None)
                 .ConfigureAwait(false);
         }
         
@@ -161,8 +161,8 @@ namespace NineDigit.NWS4.AspNetCore.Tests
             var url = $"http://{host}/api/v1/registrations/receipts";
             var proxyHost = "ekasa-cloud-int.ngrok.sk";
             var httpMethod = HttpMethod.Post;
-            var accessKey = "d51fbd43e205b16a806ca2399c7023b8";
-            var privateKey = "1adaee8c378449453dcf40625d20d6b65b02f51aa28191df874296c1f13c8243";
+            using var credentials = new Credentials("d51fbd43e205b16a806ca2399c7023b8",
+                "1adaee8c378449453dcf40625d20d6b65b02f51aa28191df874296c1f13c8243");
             var headers = new HttpRequestHeaders
             {
                 { "__tenant", "39ff67bf-0182-4903-c820-2dd75eed9d21" }
@@ -188,18 +188,17 @@ namespace NineDigit.NWS4.AspNetCore.Tests
                 Body = Encoding.UTF8.GetBytes(body)
             };
 
-            await signer.SignRequestAsync(request, accessKey, privateKey);
+            await signer.SignRequestAsync(request, credentials);
 
             Assert.Equal(5, request.Headers.Count());
-            Assert.True(request.Headers.TryGet("Authorization", out IEnumerable<string>? values));
-            var value = Assert.Single(values);
+            Assert.True(request.Headers.TryGet("Authorization", out var value));
             Assert.Equal("NWS4-HMAC-SHA256 Credential%3Dd51fbd43e205b16a806ca2399c7023b8%2CSignedHeaders%3Dhost%253Bx-nd-content-sha256%253Bx-nd-date%253B__tenant%2CTimestamp%3D2022-02-07T10%253A47%253A53.026Z%2CSignature%3D6a130431fc7fe63f42821426028af06ba73bbdbb5e1a65e4d54249877603bcfe", value);
 
             request.Headers.Remove(HeaderNames.Host);
             request.Headers.Add(HeaderNames.Host, proxyHost);
             request.Headers.Add(HttpRequestHeaderNames.XForwardedHost, host);
             
-            await signer.ValidateSignatureAsync(request, privateKey, requestTimeWindow, CancellationToken.None)
+            await signer.ValidateSignatureAsync(request, credentials.PrivateKey, requestTimeWindow, CancellationToken.None)
                 .ConfigureAwait(false);
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,21 +62,18 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         
     public async Task SignRequestAsync(
         IHttpRequest request,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         CancellationToken cancellationToken = default)
     {
-        var computeSignatureResult = await this
-            .ComputeSignatureAsync(request, accessKey, privateKey, cancellationToken);
-
+        var computeSignatureResult = await ComputeSignatureAsync(request, credentials, cancellationToken);
         var authData = new AuthData(computeSignatureResult);
+        
         AuthDataSerializer.Write(request, authData);
     }
         
     internal async Task<ComputeSignatureResult> ComputeSignatureAsync(
         IHttpRequest request,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         CancellationToken cancellationToken = default)
     {
         if (request is null)
@@ -85,7 +83,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         var bodyHash = ComputeBodyHash(body);
             
         var computeSignatureResult = this
-            .ComputeSignature(request.RequestUri, request.Method, request.Headers, bodyHash, accessKey, privateKey);
+            .ComputeSignature(request.RequestUri, request.Method, request.Headers, bodyHash, credentials);
 
         return computeSignatureResult;
     }
@@ -96,9 +94,8 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string httpMethod,
         IReadOnlyHttpRequestHeaders headers,
         string bodyHash,
-        string accessKey,
-        string privateKey)
-        => ComputeSignature(now, uri, httpMethod, headers, bodyHash, accessKey, privateKey,
+        Credentials credentials)
+        => ComputeSignature(now, uri, httpMethod, headers, bodyHash, credentials,
             NullLogger<AuthorizationHeaderSigner>.Instance);
 
     public static ComputeSignatureResult ComputeSignature(
@@ -107,8 +104,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string httpMethod,
         IReadOnlyHttpRequestHeaders headers,
         string bodyHash,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         ILogger logger)
     {
         var dateTime = now.ToUniversalTime();
@@ -130,7 +126,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         }
 
         var headersDict = headers.ToDictionary();
-        var result = ComputeSignature(uri, httpMethod, headersDict, bodyHash, accessKey, privateKey, dateTime, logger);
+        var result = ComputeSignature(uri, httpMethod, headersDict, bodyHash, credentials, dateTime, logger);
 
         return result;
     }
@@ -140,8 +136,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string httpMethod,
         IHttpRequestHeaders headers,
         string bodyHash,
-        string accessKey,
-        string privateKey)
+        Credentials credentials)
     {
         var dateTime = DateTimeProvider.UtcNow.ToUniversalTime();
 
@@ -151,7 +146,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         headers.SetXNDContentSHA256(bodyHash);
         headers.TrySetHost(uri);
 
-        var result = ComputeSignature(dateTime, uri, httpMethod, headers, bodyHash, accessKey, privateKey, Logger);
+        var result = ComputeSignature(dateTime, uri, httpMethod, headers, bodyHash, credentials, Logger);
 
         return result;
     }
@@ -161,11 +156,13 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         string httpMethod,
         IReadOnlyDictionary<string, string> headers,
         string bodyHash,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         DateTime dateTime,
         ILogger logger)
     {
+        if (credentials is null)
+            throw new ArgumentNullException(nameof(credentials));
+        
         string? queryParameters = requestUri?.Query.TrimStart('?');
 
         // TODO: Validate required Headers like Host
@@ -203,7 +200,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
 
         // construct the string to be signed
         string stringToSign = string.Format("{0}-{1}\n{2}\n{3}\n{4}",
-            Scheme, Algorithm, dateTimeStamp, accessKey, canonicalRequestHashHexString);
+            Scheme, Algorithm, dateTimeStamp, credentials.PublicKey, canonicalRequestHashHexString);
 
         // compute the signing key
         string signatureString;
@@ -211,7 +208,8 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
 
         using (var kha = CreateKeyedHashAlgorithm(HmacSha256))
         {
-            signingKey = kha.Key = DeriveSigningKey(HmacSha256, privateKey, dateStamp);
+            var privateKeyString = SecureStringHelper.CreateUnsecureString(credentials.PrivateKey);
+            signingKey = kha.Key = DeriveSigningKey(HmacSha256, privateKeyString, dateStamp);
 
             // compute the NWS4 signature and return it
             var signature = kha.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
@@ -224,7 +222,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
             
         var result = new ComputeSignatureResult(
             scheme: SchemeName,
-            publicKey: accessKey,
+            publicKey: credentials.PublicKey,
             signedHeaderNames: canonicalizedHeaderNames,
             timestamp: dateTimeStamp,
             signingKey: signingKey,
@@ -248,7 +246,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
     protected override async Task<byte[]?> ValidateSignatureAsync(
         IHttpRequest request,
         AuthData authData,
-        string privateKey,
+        SecureString privateKey,
         CancellationToken cancellationToken = default)
     {
         if (request is null)
@@ -273,10 +271,8 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         var content = await request.ReadBodyAsync(cancellationToken).ConfigureAwait(false);
         var bodyHash = ComputeBodyHash(content);
         var dateTime = ParseUtcDateTime(authData.Timestamp);
-
-        var result = ComputeSignature(
-            requestUri, httpMethod, signedHeaders,
-            bodyHash, authData.Credential, privateKey, dateTime, Logger);
+        using var credentials = new Credentials(authData.Credential, privateKey);
+        var result = ComputeSignature(requestUri, httpMethod, signedHeaders, bodyHash, credentials, dateTime, Logger);
 
         if (result.Signature != authData.Signature)
             throw new InvalidOperationException("Invalid signature.");

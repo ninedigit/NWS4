@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET6_0_OR_GREATER
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -20,12 +21,25 @@ internal sealed class HttpRequestMessageHeadersWrapper : IHttpRequestHeaders
     public bool Remove(string name)
         => _headers.Remove(name);
 
-    public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
-        => _headers.TryGetValues(name, out values);
+    public bool TryGet(string name, [NotNullWhen(true)] out string? value)
+    {
+        if (_headers.NonValidated.TryGetValues(name, out var values))
+        {
+            value = values.ToString();
+            return true;
+        }
 
-    public IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumerator()
-        => _headers.GetEnumerator();
+        value = default;
+        return false;
+    }
+
+    public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
+    {
+        foreach (var header in _headers.NonValidated)
+            yield return new KeyValuePair<string, string>(header.Key, header.Value.ToString());
+    }
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
 }
+#endif

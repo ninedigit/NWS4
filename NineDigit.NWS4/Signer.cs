@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -119,7 +120,7 @@ public abstract class Signer
 
     public async Task<byte[]?> ValidateSignatureAsync(
         IHttpRequest request,
-        string privateKey,
+        SecureString privateKey,
         TimeSpan requestTimeWindow,
         CancellationToken cancellationToken = default)
     {
@@ -156,7 +157,7 @@ public abstract class Signer
     protected abstract Task<byte[]?> ValidateSignatureAsync(
         IHttpRequest request,
         AuthData authData,
-        string privateKey,
+        SecureString privateKey,
         CancellationToken cancellationToken = default);
 
     private static HashAlgorithm CreateHashAlgorithm(string hashName)

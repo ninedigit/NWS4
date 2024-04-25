@@ -31,13 +31,13 @@ internal class HeaderDictionaryWrapper : IHttpRequestHeaders
             return _headers.Remove(name);
     }
 
-    public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
+    public bool TryGet(string name, [NotNullWhen(true)] out string? values)
     {
         lock (_headers)
         {
             if (_headers.TryGetValue(name, out StringValues stringValues))
             {
-                values = stringValues.ToArray();
+                values = stringValues.ToString();
                 return true;
             }
             else
@@ -48,17 +48,12 @@ internal class HeaderDictionaryWrapper : IHttpRequestHeaders
         }
     }
 
-    public IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumerator()
+    public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
     {
         lock (_headers)
         {
-            foreach (var key in _headers.Keys)
-            {
-                var values = _headers.GetCommaSeparatedValues(key);
-                var result = new KeyValuePair<string, IEnumerable<string>>(key, values);
-
-                yield return result;
-            }
+            foreach (var header in _headers)
+                yield return new KeyValuePair<string, string>(header.Key, header.Value);
         }
     }
 

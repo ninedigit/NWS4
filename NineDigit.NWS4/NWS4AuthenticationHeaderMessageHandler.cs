@@ -1,3 +1,4 @@
+#if NET6_0_OR_GREATER
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -7,7 +8,7 @@ namespace NineDigit.NWS4;
 
 public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
 {
-    private readonly IAsyncCredentialsProvider _credentialsProvider;
+    protected IAsyncCredentialsProvider CredentialsProvider { get; }
         
     public NWS4AuthenticationHeaderMessageHandler(
         AuthorizationHeaderSigner signer,
@@ -52,7 +53,7 @@ public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
         HttpMessageHandler innerHandler)
         : base(innerHandler)
     {
-        _credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
+        CredentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
         Signer = signer ?? throw new ArgumentNullException(nameof(signer));
     }
 
@@ -60,16 +61,13 @@ public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage requestMessage, CancellationToken cancellationToken)
     {
-        var credentials = await _credentialsProvider.GetCredentialsAsync(requestMessage, cancellationToken)
+        var credentials = await CredentialsProvider.GetCredentialsAsync(requestMessage, cancellationToken)
             .ConfigureAwait(false);
         
         if (credentials != null)
         {
             var request = new HttpRequestMessageWrapper(requestMessage);
-
-            await Signer
-                .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, cancellationToken)
-                .ConfigureAwait(false);
+            await Signer.SignRequestAsync(request, credentials, cancellationToken).ConfigureAwait(false);
         }
 
         var result = await base.SendAsync(requestMessage, cancellationToken).ConfigureAwait(false);
@@ -77,3 +75,4 @@ public class NWS4AuthenticationHeaderMessageHandler : DelegatingHandler
         return result;
     }
 }
+#endif

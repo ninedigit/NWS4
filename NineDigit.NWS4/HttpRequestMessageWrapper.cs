@@ -1,3 +1,4 @@
+#if NET6_0_OR_GREATER
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -26,3 +27,4 @@ internal sealed class HttpRequestMessageWrapper : IHttpRequest
     public Task<byte[]?> ReadBodyAsync(CancellationToken cancellationToken = default)
         => _message.TryReadContentAsByteArrayAsync();
 }
+#endif

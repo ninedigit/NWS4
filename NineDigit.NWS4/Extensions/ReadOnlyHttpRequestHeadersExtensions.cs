@@ -11,7 +11,7 @@ internal static class ReadOnlyHttpRequestHeadersExtensions
         string? value,
         StringComparison comparison = StringComparison.Ordinal)
     {
-        if (!headers.TryGetValue(key, out string? headerValue))
+        if (!headers.TryGet(key, out string? headerValue))
             throw new KeyNotFoundException($"Header key '{key}' was not found.");
 
         var stringComparer =

@@ -1,4 +1,6 @@
+#if NET6_0_OR_GREATER
 using System.Net.Http;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,13 +11,13 @@ public static class AuthorizationHeaderChunkedSignerExtensions
     public static Task SignRequestAsync(
         this AuthorizationHeaderChunkedSigner self,
         HttpRequestMessage request,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         CancellationToken cancellationToken = default)
     {
         var requestWrapper = new HttpRequestMessageWrapper(request);
-        var result = self.SignRequestAsync(requestWrapper, accessKey, privateKey, cancellationToken);
+        var result = self.SignRequestAsync(requestWrapper, credentials, cancellationToken);
 
         return result;
     }
 }
+#endif

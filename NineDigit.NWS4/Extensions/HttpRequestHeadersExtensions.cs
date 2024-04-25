@@ -9,7 +9,7 @@ namespace NineDigit.NWS4;
 public static class HttpRequestHeadersExtensions
 {
     public static Dictionary<string, string> ToDictionary(this IReadOnlyHttpRequestHeaders headers)
-        => headers.ToDictionary(i => i.Key, i => MergeValues(i.Value), StringComparer.OrdinalIgnoreCase);
+        => headers.ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
         
     public static IReadOnlyDictionary<string, string> ToReadOnlyDictionary(this IReadOnlyHttpRequestHeaders headers)
     {
@@ -25,34 +25,34 @@ public static class HttpRequestHeadersExtensions
         self.Add(name, value);
     }
 
-    public static bool TryGetValue(this IReadOnlyHttpRequestHeaders self, string name, out string? value)
-    {
-        if (self.TryGet(name, out IEnumerable<string?>? values))
-        {
-            value = MergeValues(values);
-            return true;
-        }
-        else
-        {
-            value = default;
-            return false;
-        }
-    }
-
-    public static bool TryGetValues(this IReadOnlyHttpRequestHeaders self, string name, out StringValues? result)
-    {
-        if (self.TryGet(name, out IEnumerable<string?>? values))
-        {
-            result = values != null ? new StringValues(values.ToArray()) : default(StringValues?);
-            return true;
-        }
-
-        result = default;
-        return false;
-    }
+    // public static bool TryGetValue(this IReadOnlyHttpRequestHeaders self, string name, out string? value)
+    // {
+    //     if (self.TryGet(name, out IEnumerable<string?>? values))
+    //     {
+    //         value = MergeValues(values);
+    //         return true;
+    //     }
+    //     else
+    //     {
+    //         value = default;
+    //         return false;
+    //     }
+    // }
+    //
+    // public static bool TryGetValues(this IReadOnlyHttpRequestHeaders self, string name, out StringValues? result)
+    // {
+    //     if (self.TryGet(name, out IEnumerable<string?>? values))
+    //     {
+    //         result = values != null ? new StringValues(values.ToArray()) : default(StringValues?);
+    //         return true;
+    //     }
+    //
+    //     result = default;
+    //     return false;
+    // }
 
     public static string? GetValuesOrNull(this IReadOnlyHttpRequestHeaders self, string name)
-        => self.TryGetValue(name, out string? value) ? value : default;
+        => self.TryGet(name, out var value) ? value : default;
 
     // public static StringValues? GetValuesOrNull(this IReadOnlyHttpRequestHeaders self, string name)
     //     => self.TryGetValues(name, out StringValues? value) ? value : default;
@@ -94,6 +94,6 @@ public static class HttpRequestHeadersExtensions
     public static void SetXNDContentSHA256(this IHttpRequestHeaders self, string bodyHash)
         => self.Set(Signer.XNDContentSHA256, bodyHash);
         
-    private static string MergeValues(IEnumerable<string?> values)
-        => string.Join(",", values.Where(i => i != null));
+    // private static string MergeValues(IEnumerable<string?> values)
+    //     => string.Join(",", values.Where(i => i != null));
 }

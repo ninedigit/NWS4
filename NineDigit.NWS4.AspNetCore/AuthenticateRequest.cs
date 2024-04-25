@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,14 +32,14 @@ public sealed class AuthenticateRequest : IDisposable
     public AuthData AuthenticationHeaderContext { get; }
     public NWS4AuthenticationSchemeOptions Options { get; }
 
-    public async Task ValidateSignatureAsync(string privateKey, CancellationToken cancellationToken = default)
+    public async Task ValidateSignatureAsync(SecureString privateKey, CancellationToken cancellationToken = default)
     {
         using (await _bodySyncRoot.LockAsync(cancellationToken).ConfigureAwait(false))
         {
             var content = await Signer
                 .ValidateSignatureAsync(Request, privateKey, Options.RequestTimeWindow, cancellationToken)
                 .ConfigureAwait(false);
-
+            
             _body = content;
             _validated = true;
         }

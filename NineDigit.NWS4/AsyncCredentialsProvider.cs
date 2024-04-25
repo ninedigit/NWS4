@@ -5,16 +5,16 @@ using System.Threading.Tasks;
 
 namespace NineDigit.NWS4;
 
-internal class AsyncCredentialsProvider : IAsyncCredentialsProvider
+public class AsyncCredentialsProvider : IAsyncCredentialsProvider
 {
-    private readonly Func<HttpRequestMessage, CancellationToken, Task<Credentials?>> _credentialsProvider;
+    protected Func<HttpRequestMessage, CancellationToken, Task<Credentials?>> CredentialsProvider { get; }
     
     public AsyncCredentialsProvider(Func<HttpRequestMessage, Credentials?> credentialsProvider)
     {
         if (credentialsProvider is null)
             throw new ArgumentNullException(nameof(credentialsProvider));
         
-        _credentialsProvider = (m, _) => Task.FromResult(credentialsProvider(m));
+        CredentialsProvider = (m, _) => Task.FromResult(credentialsProvider(m));
     }
     
     public AsyncCredentialsProvider(ICredentialsProvider credentialsProvider)
@@ -22,16 +22,16 @@ internal class AsyncCredentialsProvider : IAsyncCredentialsProvider
         if (credentialsProvider is null)
             throw new ArgumentNullException(nameof(credentialsProvider));
         
-        _credentialsProvider = (m, _) => Task.FromResult(credentialsProvider.GetCredentials(m));
+        CredentialsProvider = (m, _) => Task.FromResult(credentialsProvider.GetCredentials(m));
     }
     
-    public Task<Credentials?> GetCredentialsAsync(
+    public virtual Task<Credentials?> GetCredentialsAsync(
         HttpRequestMessage requestMessage,
         CancellationToken cancellationToken = default)
     {
         if (requestMessage is null)
             throw new ArgumentNullException(nameof(requestMessage));
         
-        return _credentialsProvider(requestMessage, cancellationToken);
+        return CredentialsProvider(requestMessage, cancellationToken);
     }
 }

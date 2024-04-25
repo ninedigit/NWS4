@@ -1,6 +1,8 @@
-﻿using System;
+﻿#if NET6_0_OR_GREATER
+using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -75,12 +77,11 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
         {
             var maxBodySize = MaxRequestBodySize;
             var request = new HttpRequestMessageWrapper(requestMessage);
-
             var contentLength = requestMessage.Content?.Headers.ContentLength;
+            
             if (maxBodySize.HasValue && contentLength.HasValue && contentLength.Value > maxBodySize)
             {
-                var chunks = await Signer
-                    .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, maxBodySize.Value, cancellationToken)
+                var chunks = await Signer.SignRequestAsync(request, credentials, maxBodySize.Value, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (chunks.Any())
@@ -103,9 +104,7 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
             }
             else
             {
-                await Signer
-                    .SignRequestAsync(request, credentials.PublicKey, credentials.PrivateKey, cancellationToken)
-                    .ConfigureAwait(false);
+                await Signer.SignRequestAsync(request, credentials, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -116,3 +115,4 @@ public class NWS4AuthenticationHeaderChunkedMessageHandler : DelegatingHandler
         return result;
     }
 }
+#endif

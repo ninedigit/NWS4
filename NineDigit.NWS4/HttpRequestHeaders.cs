@@ -1,55 +1,39 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace NineDigit.NWS4;
 
-public class HttpRequestHeaders : Dictionary<string, IEnumerable<string>>, IHttpRequestHeaders
+public class HttpRequestHeaders : IHttpRequestHeaders
 {
-    public HttpRequestHeaders()
-        : base(StringComparer.OrdinalIgnoreCase)
-    { }
-        
-    public HttpRequestHeaders(System.Net.Http.Headers.HttpRequestHeaders headers)
-        : this(ToDictionary(headers))
-    {
-    }
+    private readonly Dictionary<string, string> _entries;
 
-    public HttpRequestHeaders(IDictionary<string, IEnumerable<string>> collection)
-        : base(StringComparer.OrdinalIgnoreCase)
+    public HttpRequestHeaders()
+    {
+        _entries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
+    
+    public HttpRequestHeaders(IDictionary<string, string> collection)
     {
         if (collection is null)
             throw new ArgumentNullException(nameof(collection));
 
-        foreach (var item in collection)
-        foreach (var value in item.Value)
-            Add(item.Key, value);
+        _entries = new Dictionary<string, string>(collection, StringComparer.OrdinalIgnoreCase);
     }
+
+    public bool TryGet(string name, [NotNullWhen(true)] out string? value)
+        => _entries.TryGetValue(name, out value);
 
     public void Add(string name, string? value)
-    {
-        value ??= string.Empty;
-            
-        if (TryGetValue(name, out var values))
-        {
-            var newValues = new List<string>(values) { value };
-            this[name] = newValues;
-        }
-        else
-        {
-            this[name] = new List<string> { value };
-        }
-    }
+        => _entries.Add(name, value ?? string.Empty);
 
-    public bool TryGet(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
-        => TryGetValue(name, out values);
-        
-    private static Dictionary<string, IEnumerable<string>> ToDictionary(System.Net.Http.Headers.HttpRequestHeaders self)
-    {
-        if (self is null)
-            throw new ArgumentNullException(nameof(self));
-            
-        return self.ToDictionary(i => i.Key, i => i.Value, StringComparer.OrdinalIgnoreCase);
-    }
+    public bool Remove(string name)
+        => _entries.Remove(name);
+
+    public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
+        => _entries.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator()
+        => GetEnumerator();
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -10,7 +11,7 @@ public static class SignerExtensions
     public static Task<byte[]?> ValidateSignatureAsync(
         this Signer self,
         HttpRequest httpRequest,
-        string privateKey,
+        SecureString privateKey,
         TimeSpan requestTimeWindow,
         CancellationToken cancellationToken = default)
     {

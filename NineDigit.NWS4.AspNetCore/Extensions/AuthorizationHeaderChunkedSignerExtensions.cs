@@ -1,3 +1,4 @@
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -9,12 +10,11 @@ public static class AuthorizationHeaderChunkedSignerExtensions
     public static Task SignRequestAsync(
         this AuthorizationHeaderChunkedSigner self,
         HttpRequest request,
-        string accessKey,
-        string privateKey,
+        Credentials credentials,
         CancellationToken cancellationToken = default)
     {
         var requestWrapper = new AspNetCoreHttpRequestWrapper(request);
-        var result = self.SignRequestAsync(requestWrapper, accessKey, privateKey, cancellationToken);
+        var result = self.SignRequestAsync(requestWrapper, credentials, cancellationToken);
 
         return result;
     }

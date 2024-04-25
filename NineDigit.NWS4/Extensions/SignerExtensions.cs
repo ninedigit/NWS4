@@ -1,5 +1,7 @@
+#if NET6_0_OR_GREATER
 using System;
 using System.Net.Http;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,7 +12,7 @@ public static class SignerExtensions
     public static Task<byte[]?> ValidateSignatureAsync(
         this Signer self,
         HttpRequestMessage requestMessage,
-        string privateKey,
+        SecureString privateKey,
         TimeSpan requestTimeWindow,
         CancellationToken cancellationToken = default)
     {
@@ -20,3 +22,4 @@ public static class SignerExtensions
         return result;
     }
 }
+#endif
