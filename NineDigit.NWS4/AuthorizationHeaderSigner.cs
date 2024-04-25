@@ -151,7 +151,7 @@ public class AuthorizationHeaderSigner : Signer<AuthorizationHeaderAuthDataSeria
         headers.SetXNDContentSHA256(bodyHash);
         headers.TrySetHost(uri);
 
-        var result = ComputeSignature(dateTime, uri, httpMethod, headers, bodyHash, accessKey, privateKey);
+        var result = ComputeSignature(dateTime, uri, httpMethod, headers, bodyHash, accessKey, privateKey, Logger);
 
         return result;
     }
